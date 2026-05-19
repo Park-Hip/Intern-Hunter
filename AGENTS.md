@@ -165,3 +165,28 @@ Use environment variables and `.env.example` placeholders.
 ## Verification commands
 
 Use relevant commands only.
+
+## Live docs update rule
+
+For any change that affects implemented behavior, API surface, runtime entrypoints, or developer workflow, update the matching live docs in the same branch.
+
+At minimum, review and update when relevant:
+- `README.md`
+- `docs/api/overview.md`
+- `docs/current-system/current_behavior.md`
+
+Do not leave live behavior changes documented only in planning docs.
+
+Planning docs such as `docs/agent/*` must stay clearly separated from implemented behavior docs. If a planning doc mentions a partially implemented feature, it must explicitly distinguish current scaffolded behavior from future target behavior.
+
+## Docs consistency verification
+
+Before marking work complete, do a targeted docs consistency sweep for any changed behavior.
+
+Verify:
+- referenced commands still run or point to real modules/scripts
+- documented endpoints still exist
+- documented request/response behavior matches the current implementation closely enough for the active phase
+- no old entrypoint or path is still described as canonical after a structural change
+
+Use the smallest relevant tests plus targeted text searches to verify this.
