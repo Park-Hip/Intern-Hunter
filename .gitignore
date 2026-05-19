@@ -1,0 +1,38 @@
+.env
+.env.*
+!.env.example
+
+.venv/
+.uv-cache/
+.idea/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+.pycache/
+.pycache-check/
+*.pyc
+*.pyo
+*.pyd
+.codex_skill_build/
+
+mlflow.db
+*.sqlite
+*.sqlite3
+
+*.log
+errors/
+src/mlruns/
+mlruns/
+
+tests/fixtures/crawl_samples/topcv/**/*.png
+
+# Optional if these are generated dumps, not curated fixtures
+tests/fixtures/crawl_samples/topcv/**/raw.html
+tests/fixtures/crawl_samples/topcv/**/raw_markdown.txt
+tests/fixtures/crawl_samples/topcv/**/full_json_dump.json
+tests/fixtures/crawl_samples/topcv/**/metadata.json
+tests/fixtures/crawl_samples/topcv/**/export_summary.json
+
+# Accidental local copies
+.gitignore copy

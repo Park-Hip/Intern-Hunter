@@ -1,0 +1,31 @@
+{
+  "standardized_title": "Data Engineer",
+  "job_level": "Mid",
+  "is_internship": false,
+  "description": "This TopCV-like page lists multiple work locations.",
+  "requirement": "Python, SQL, data pipelines",
+  "benefit": "Hybrid work and training budget",
+  "cities": [
+    "Hanoi",
+    "Ho Chi Minh City"
+  ],
+  "experience": 3.0,
+  "min_gpa": null,
+  "english_requirement": "Intermediate English",
+  "salary_min": 1500.0,
+  "salary_max": 2500.0,
+  "currency": "USD",
+  "is_salary_negotiable": false,
+  "tech_stack": [
+    "Python",
+    "SQL",
+    "Airflow"
+  ],
+  "technical_competencies": [
+    "Build data pipelines",
+    "Optimize ETL jobs"
+  ],
+  "domain_knowledge": [
+    "Data Engineering"
+  ]
+}

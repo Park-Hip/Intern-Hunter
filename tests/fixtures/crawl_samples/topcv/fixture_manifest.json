@@ -1,0 +1,112 @@
+{
+  "samples": [
+    {
+      "crawl_run_id": "fb750e62",
+      "sample_dir": "fb750e62/000017_2157157_k-s-d-li-ul-n-bigdata-engineer",
+      "url": "https://www.topcv.vn/viec-lam/ky-su-du-lieu-lon-big-data-engineer/2157157.html",
+      "layout_family": "standard_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "successful standard TopCV fixture"
+    },
+    {
+      "crawl_run_id": "a9c48cc3",
+      "sample_dir": "a9c48cc3/000022_1778754897_finance",
+      "url": "https://www.topcv.vn/brand/techcombank/tuyen-dung/expert-finance-systems-ai-j2142201.html?ta_source=JobSearchList_LinkDetail&u_sr_id=uGxITGX5PUTVQRqlewvOLT1ThEuRbZVxy3psefjJ_1778754897",
+      "layout_family": "branded_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "manual branded_topcv fixture for techcombank"
+    },
+    {
+      "crawl_run_id": "381ce798",
+      "sample_dir": "381ce798/000023_9500_ai-expert-kh-ic-ng-ngh-th-ng-tin-2026td450200",
+      "url": "https://www.topcv.vn/brand/nganhangthuongmaicophanquandoi/tuyen-dung/ai-expert-khoi-cong-nghe-thong-tin-2026td450200-j2143680.html?ta_source=SuggestSimilarJob_LinkDetail&jr_i=job-es-v1%3A%3A1778754976928-dcb97c%3A%3Af1dd03c110f2432b87e948abbb5727bb%3A%3A6%3A%3A0.9500",
+      "layout_family": "branded_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "manual branded_topcv fixture for nganhangthuongmaicophanquandoi"
+    },
+    {
+      "crawl_run_id": "2f0567ca",
+      "sample_dir": "2f0567ca/000013_1948720_chuy-n-vi-n-s-ng-t-o-n-i-dungyoutube-s-d-ng-ai-thu-nh-p-upto30m-i-ng-h-p-d-n",
+      "url": "https://www.topcv.vn/viec-lam/chuyen-vien-sang-tao-noi-dung-youtube-su-dung-ai-thu-nhap-upto30m-dai-ngo-hap-dan/1948720.html",
+      "layout_family": "standard_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "latest structured TopCV export with all canonical sections"
+    },
+    {
+      "crawl_run_id": "feadd899",
+      "sample_dir": "feadd899/000013_1948720_chuy-n-vi-n-s-ng-t-o-n-i-dungyoutube-s-d-ng-ai-thu-nh-p-upto30m-i-ng-h-p-d-n",
+      "url": "https://www.topcv.vn/viec-lam/chuyen-vien-sang-tao-noi-dung-youtube-su-dung-ai-thu-nhap-upto30m-dai-ngo-hap-dan/1948720.html",
+      "layout_family": "standard_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "fresh structured TopCV export after third section pass"
+    },
+    {
+      "crawl_run_id": "1a10301f",
+      "sample_dir": "1a10301f/000013_1948720_chuy-n-vi-n-s-ng-t-o-n-i-dungyoutube-s-d-ng-ai-thu-nh-p-upto30m-i-ng-h-p-d-n",
+      "url": "https://www.topcv.vn/viec-lam/chuyen-vien-sang-tao-noi-dung-youtube-su-dung-ai-thu-nhap-upto30m-dai-ngo-hap-dan/1948720.html",
+      "layout_family": "standard_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "additional standard TopCV fixture for corpus breadth"
+    },
+    {
+      "crawl_run_id": "b1c41047",
+      "sample_dir": "b1c41047/000021_1778754897_seniordata-scientist-h-n-i-ta174",
+      "url": "https://www.topcv.vn/brand/vpbank/tuyen-dung/senior-data-scientist-ha-noi-ta174-j2158119.html?ta_source=JobSearchList_LinkDetail&u_sr_id=uGxITGX5PUTVQRqlewvOLT1ThEuRbZVxy3psefjJ_1778754897",
+      "layout_family": "branded_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "additional branded TopCV fixture for vpbank"
+    },
+    {
+      "crawl_run_id": "ac5a1d2d",
+      "sample_dir": "ac5a1d2d/000021_1778754897_seniordata-scientist-h-n-i-ta174",
+      "url": "https://www.topcv.vn/brand/vpbank/tuyen-dung/senior-data-scientist-ha-noi-ta174-j2158119.html?ta_source=JobSearchList_LinkDetail&u_sr_id=uGxITGX5PUTVQRqlewvOLT1ThEuRbZVxy3psefjJ_1778754897",
+      "layout_family": "branded_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "manual branded_topcv fixture for vpbank"
+    },
+    {
+      "crawl_run_id": "9154868b",
+      "sample_dir": "9154868b/000021_1778754897_seniordata-scientist-h-n-i-ta174",
+      "url": "https://www.topcv.vn/brand/vpbank/tuyen-dung/senior-data-scientist-ha-noi-ta174-j2158119.html?ta_source=JobSearchList_LinkDetail&u_sr_id=uGxITGX5PUTVQRqlewvOLT1ThEuRbZVxy3psefjJ_1778754897",
+      "layout_family": "branded_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "manual branded_topcv fixture for vpbank"
+    },
+    {
+      "crawl_run_id": "f3a0b868",
+      "sample_dir": "f3a0b868/000028_2121776_unknown-raw",
+      "url": "https://www.topcv.vn/viec-lam/ai-team-leader-branch-manager-ha-noi/2121776.html",
+      "layout_family": "blocked",
+      "expected_status": "blocked",
+      "expected_extraction_method": "raw",
+      "notes": "TopCV blocked_or_empty_content fixture from f3a0b868"
+    },
+    {
+      "crawl_run_id": "f3a0b868",
+      "sample_dir": "f3a0b868/000029_2163522_unknown-raw",
+      "url": "https://www.topcv.vn/viec-lam/chuyen-vien-xay-dung-website-bang-ai-goi-luong-14-thang-nam-bao-hiem-full-luong-bao-hiem-suc-khoe-doanh-nghiep/2163522.html",
+      "layout_family": "blocked",
+      "expected_status": "blocked",
+      "expected_extraction_method": "raw",
+      "notes": "TopCV blocked_or_empty_content fixture from f3a0b868"
+    },
+    {
+      "crawl_run_id": "fbf5fd6e",
+      "sample_dir": "fbf5fd6e/000013_1948720_chuy-n-vi-n-s-ng-t-o-n-i-dungyoutube-s-d-ng-ai-thu-nh-p-upto30m-i-ng-h-p-d-n",
+      "url": "https://www.topcv.vn/viec-lam/chuyen-vien-sang-tao-noi-dung-youtube-su-dung-ai-thu-nhap-upto30m-dai-ngo-hap-dan/1948720.html",
+      "layout_family": "standard_topcv",
+      "expected_status": "pending",
+      "expected_extraction_method": "css",
+      "notes": "fresh standard TopCV fixture with provenance-aware export"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "standardized_title": "Machine Learning Engineer",
+  "job_level": "Senior",
+  "is_internship": false,
+  "description": "This TopCV-like page explicitly marks salary as negotiable.",
+  "requirement": "Python, ML, APIs",
+  "benefit": "Flexible compensation",
+  "cities": [
+    "Hanoi"
+  ],
+  "experience": 4.0,
+  "min_gpa": null,
+  "english_requirement": null,
+  "salary_min": null,
+  "salary_max": null,
+  "currency": null,
+  "is_salary_negotiable": true,
+  "tech_stack": [
+    "Python",
+    "TensorFlow",
+    "FastAPI"
+  ],
+  "technical_competencies": [
+    "Model deployment",
+    "ML system design"
+  ],
+  "domain_knowledge": [
+    "Machine Learning"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "standardized_title": "Python Intern",
+  "job_level": "Intern",
+  "is_internship": true,
+  "description": "This TopCV-like page represents an internship or fresher role.",
+  "requirement": "Basic Python, Git, teamwork",
+  "benefit": "Mentorship and training",
+  "cities": [
+    "Remote"
+  ],
+  "experience": 0.0,
+  "min_gpa": null,
+  "english_requirement": null,
+  "salary_min": null,
+  "salary_max": null,
+  "currency": null,
+  "is_salary_negotiable": false,
+  "tech_stack": [
+    "Python",
+    "Git"
+  ],
+  "technical_competencies": [
+    "Write clean code",
+    "Collaborate in a team"
+  ],
+  "domain_knowledge": [
+    "Software Development"
+  ]
+}

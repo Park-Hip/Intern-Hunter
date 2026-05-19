@@ -1,0 +1,28 @@
+{
+  "standardized_title": "Software Engineer Test",
+  "job_level": "Mid",
+  "is_internship": false,
+  "description": "This is a representative TopCV-like job detail page used for fixture-based extraction tests.",
+  "requirement": "Python, APIs, testing",
+  "benefit": "Flexible work",
+  "cities": [
+    "Hanoi"
+  ],
+  "experience": 2.0,
+  "min_gpa": null,
+  "english_requirement": null,
+  "salary_min": null,
+  "salary_max": null,
+  "currency": "VND",
+  "is_salary_negotiable": true,
+  "tech_stack": [
+    "Python",
+    "FastAPI"
+  ],
+  "technical_competencies": [
+    "Build APIs"
+  ],
+  "domain_knowledge": [
+    "Web Development"
+  ]
+}

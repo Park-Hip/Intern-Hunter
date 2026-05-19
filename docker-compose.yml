@@ -1,0 +1,20 @@
+services:
+  db:
+    image: ankane/pgvector:latest
+    container_name: job_finder_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: job_finder_db
+      POSTGRES_USER: job_finder_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U job_finder_user -d job_finder_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -1,0 +1,9 @@
+{
+  "fixture_name": "blocked_or_empty",
+  "expected_valid": false,
+  "expected_failure_reason": "blocked_or_empty_content",
+  "required_missing_fields": [
+    "standardized_title",
+    "description"
+  ]
+}

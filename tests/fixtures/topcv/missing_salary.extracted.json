@@ -1,0 +1,30 @@
+{
+  "standardized_title": "Backend Engineer",
+  "job_level": "Senior",
+  "is_internship": false,
+  "description": "This TopCV-like page intentionally omits salary information.",
+  "requirement": "Python, PostgreSQL, APIs",
+  "benefit": "Hybrid work",
+  "cities": [
+    "Ho Chi Minh City"
+  ],
+  "experience": 3.0,
+  "min_gpa": null,
+  "english_requirement": "Conversational English",
+  "salary_min": null,
+  "salary_max": null,
+  "currency": null,
+  "is_salary_negotiable": false,
+  "tech_stack": [
+    "Python",
+    "PostgreSQL",
+    "FastAPI"
+  ],
+  "technical_competencies": [
+    "Design APIs",
+    "Database modeling"
+  ],
+  "domain_knowledge": [
+    "Backend Systems"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "fixture_name": "malformed_page",
+  "expected_valid": false,
+  "expected_failure_reason": "malformed_or_incomplete_content",
+  "required_missing_fields": [
+    "standardized_title",
+    "cities",
+    "tech_stack",
+    "domain_knowledge"
+  ]
+}
