@@ -4,13 +4,14 @@ This document defines the planned HTTP contract for the database-agent layer.
 
 ## Status
 
-- Planning only.
-- No endpoint listed here should be treated as implemented.
+- `POST /agent/ask`, the request/response models, and a thin orchestration seam are implemented as a scaffold.
+- The current live behavior is intentionally narrow: stub `ok` and preview envelopes only.
+- Real SQL generation, validation, execution, charting, session memory, small-talk handling, and resume-tool routing are still future work behind the existing endpoint.
 - Existing search and resume-matching endpoints remain unchanged in this phase.
 
 ## Purpose
 
-- Define the internal/demo MVP API contract before implementation starts.
+- Define the internal/demo MVP API contract while implementation is still being built.
 - Keep the public HTTP surface narrow while the database-agent architecture is still being built.
 - Make request shapes, response shapes, refusal behavior, and output guarantees explicit.
 - Defer SQL grammar and whitelist rules to `docs/agent/sql_contract.md`.
@@ -102,7 +103,6 @@ The endpoint may also include:
 - `user_id: string | null`
 - `preview_only: bool = false`
 - `include_chart: bool = false`
-- `chart_type_hint: string | null`
 - `limit: int | null`
 - `include_summary: bool = true`
 - `debug: bool = false`
@@ -150,12 +150,6 @@ The endpoint may also include:
 - The agent may also infer chart intent from the question even if this field is `false`.
 - Inferred chart intent affects tool routing and post-query chart generation only; it does not bypass SQL validation or create a separate execution path.
 
-#### `chart_type_hint`
-
-- Optional client hint such as `bar` or `line`.
-- Treated as a preference, not a guarantee.
-- MVP chart output should stay within a narrow supported set; `pie` and richer chart types are deferred.
-
 #### `limit`
 
 - Optional client hint for result size.
@@ -180,7 +174,6 @@ The endpoint may also include:
   "user_id": "demo-user-123",
   "preview_only": false,
   "include_chart": true,
-  "chart_type_hint": "bar",
   "limit": 50,
   "include_summary": true,
   "debug": false
@@ -223,9 +216,6 @@ All successful HTTP responses for valid requests use a stable envelope:
 
 - `ok`
 - `refused`
-- `error`
-
-`status="error"` may be used inside a `200` response only if the request itself was valid and the product chooses to represent a handled application error in-band. Unexpected server failures should still use HTTP `500`.
 
 ### Top-Level Fields
 
@@ -233,7 +223,6 @@ All successful HTTP responses for valid requests use a stable envelope:
 
 - `ok` for successful execution, successful preview, successful resume-matching responses, successful light small-talk handling, or empty-result success.
 - `refused` for safe refusals such as unsafe SQL or unsupported question types.
-- `error` only for handled application-level error states if the implementation chooses to use it.
 
 #### `question`
 
@@ -522,9 +511,9 @@ Use `200 OK` when the request payload is valid and the system returns any of the
 - light small-talk responses
 - safe refusals
 
-### `400 Bad Request`
+### `422 Unprocessable Content`
 
-Use `400 Bad Request` for invalid request payloads, such as:
+The current FastAPI/Pydantic implementation returns `422` for invalid request payloads, such as:
 
 - missing required fields
 - blank `question`
@@ -642,7 +631,7 @@ The implementation and future tests should validate at least the following behav
 - resume-matching requests without `user_id` are refused safely
 - unsafe or unsupported requests return `200` with `status="refused"` and safe machine-readable error fields
 - empty results return `status="ok"` with empty rows
-- malformed requests return `400`
+- malformed requests return `422`
 - same-session follow-ups may use prior session context through `session_id`
 - `trace_id` is always present in metadata
 - `limit_applied` and `execution_skipped` are returned consistently

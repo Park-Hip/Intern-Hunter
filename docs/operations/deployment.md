@@ -2,6 +2,7 @@
 
 ## Current Paths
 
+- API app in `src/internhunter/api/app.py`
 - Pipeline wrapper in `src/run_pipeline.py`
 - Canonical Prefect flows in `src/internhunter/orchestration/`
 - Maintenance scripts under `src/scripts/` when still used
@@ -16,8 +17,9 @@
 
 - PostgreSQL runs in a container with `pgvector`.
 - Local API and pipeline commands are run from the Python project environment.
-- Scripted runtime entrypoints live under `src/run_pipeline.py`, `src/internhunter/orchestration/`, and `src/scripts/`.
+- Scripted runtime entrypoints live under `src/internhunter/api/app.py`, `src/run_pipeline.py`, `src/internhunter/orchestration/`, and `src/scripts/`.
 
 ## Notes
 
-- The current supported runtime path is `src/run_pipeline.py`; keep Docker commands aligned with that entrypoint.
+- For local API work, use `uv run uvicorn src.internhunter.api.app:app --reload`.
+- For ETL and ingestion work, use `src/run_pipeline.py` or the orchestration flows under `src/internhunter/orchestration/`.

@@ -48,6 +48,7 @@ This docs set is meant to support safe refactoring:
 - [development/code_style.md](./development/code_style.md): style expectations for safe refactors
 - [development/logging.md](./development/logging.md): current logging rules
 - [development/ai_workflow.md](./development/ai_workflow.md): contributor workflow and AI-assisted change guardrails
+- [development/docs_audit_2026-05-19.md](./development/docs_audit_2026-05-19.md): baseline source-of-truth note for the current docs cleanup
 
 ## API
 
@@ -55,13 +56,13 @@ This docs set is meant to support safe refactoring:
 
 ## Agent
 
-- [agent/vision.md](./agent/vision.md): product direction for the future SQL-first, bounded multi-tool database agent
+- [agent/vision.md](./agent/vision.md): product direction for the bounded multi-tool database agent
 - [agent/database_agent_mvp_roadmap.md](./agent/database_agent_mvp_roadmap.md): phased execution roadmap from current state to the bounded multi-tool SQL-first MVP
-- [agent/architecture.md](./agent/architecture.md): planned runtime boundaries for the agent layer
+- [agent/architecture.md](./agent/architecture.md): target runtime boundaries plus the current thin scaffold status
 - [agent/sql_contract.md](./agent/sql_contract.md): future SQL safety and generation contract
 - [agent/data_dictionary.md](./agent/data_dictionary.md): query-facing interpretation of `clean_jobs`
 - [agent/eval_set.md](./agent/eval_set.md): planned evaluation cases
-- [agent/api_contract.md](./agent/api_contract.md): planned agent API surface
+- [agent/api_contract.md](./agent/api_contract.md): current `/agent/ask` scaffold and target MVP API contract
 - [agent/security_model.md](./agent/security_model.md): planned agent security model
 
 ## Examples

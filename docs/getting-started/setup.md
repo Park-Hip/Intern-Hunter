@@ -36,4 +36,4 @@ uv run uvicorn src.internhunter.api.app:app --reload
 - `docker-compose.yml` starts PostgreSQL with `pgvector`.
 - `src/scripts/upgrade_db.py` is a lightweight table-verification helper.
 - The project now assumes the active database schema is current.
-- `src/main.py` is intentionally removed; use `src/run_pipeline.py`, `src/internhunter/orchestration/ingestion_flow.py`, or scripts under `src/scripts/` instead.
+- There is no `src/main.py` entrypoint in this repo. Use `src/run_pipeline.py` for pipeline work, `uvicorn src.internhunter.api.app:app --reload` for local API work, and `src/scripts/` for targeted smoke or maintenance flows.

@@ -33,11 +33,17 @@
 
 ## Current Test Files
 
+- `tests/unit/test_agent_contract_models.py`
+- `tests/unit/test_agent_api_routes.py`
+- `tests/unit/test_demo_api_routes.py`
 - `tests/unit/test_job_processor.py`
 - `tests/unit/test_etl_repository.py`
+- `tests/unit/test_search_repository.py`
+- `tests/unit/test_resume_matching_tools.py`
 - `tests/integration/test_ingestion_flow.py`
 
 ## Notes
 
-- Tests currently rely on heavy mocking.
-- TODO: add real fixture coverage for extraction and search ranking.
+- Tests still rely heavily on mocking in several subsystems.
+- The current test surface now includes the database-agent contract scaffold and API route baseline.
+- Fixture coverage exists for parts of extraction, but search, ranking, and end-to-end agent behavior still need deeper coverage.

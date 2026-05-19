@@ -39,19 +39,27 @@ The following backend slices are working end to end in the local environment:
 1. `GET /health`
 2. `GET /jobs/search`
 3. `POST /resume/match`
+4. `POST /agent/ask` (thin stub route for the database-agent phase)
 
 See [API Overview](../api/overview.md) for the live API surface.
 
-## Removed Entry Point
+## Runtime Entry Points
 
-- `src/main.py` was intentionally removed as a user-facing CLI entry point.
-- Supported runtime paths are now `src/run_pipeline.py`, canonical Prefect flows under `src/internhunter/orchestration/`, API entrypoints if present, and scripts under `src/scripts/` when they are still used.
+- API app: `src/internhunter/api/app.py`
+- Pipeline CLI wrapper: `src/run_pipeline.py`
+- Prefect orchestration: `src/internhunter/orchestration/`
+- Smoke and maintenance scripts: `src/scripts/`
 
 ## Known Modules and Files
 
 - `src/internhunter/config/settings.py`
 - `src/config/settings.yaml`
 - `src/config/prompts.yaml`
+- `src/internhunter/api/app.py`
+- `src/internhunter/api/routes/demo_routes.py`
+- `src/internhunter/api/routes/agent_routes.py`
+- `src/internhunter/api/schemas/agent.py`
+- `src/agents/service.py`
 - `src/internhunter/orchestration/ingestion_flow.py`
 - `src/run_pipeline.py`
 - `src/internhunter/crawler/crawl.py`
@@ -74,9 +82,9 @@ See [API Overview](../api/overview.md) for the live API surface.
 ## Known Problems
 
 - The canonical ingestion entry point is `src/internhunter/orchestration/ingestion_flow.py`, with `src/run_pipeline.py` as the supported CLI wrapper.
-- `src/main.py` is intentionally removed; any docs or tests that still require it should be updated to the supported runtime entrypoints.
 - Search and resume matching exist as dedicated repository-backed code and are exposed through the demo API endpoints.
-- Test coverage is present, but it is still narrow and heavily mocked.
+- `POST /agent/ask` is wired as a typed stub endpoint only. Real SQL generation, validation, execution, charting, session memory, and resume-tool routing are not implemented yet.
+- Test coverage is present, but much of it is still narrow and heavily mocked.
 
 ## Required Environment
 
@@ -109,6 +117,7 @@ The MVP backend works, but the following limitations are still known:
 13. Global processing can still run without `crawl_run_id` when you want legacy backlog behavior.
 14. Resume match explanations are curated and conservative; they can miss synonyms or Vietnamese phrasing.
 15. Ranking still comes from embeddings; explanations are added after the semantic results are returned.
+16. `/agent/ask` currently returns scaffolded `ok` or preview envelopes only and does not perform real agent behavior yet.
 
 ## Verification Commands
 

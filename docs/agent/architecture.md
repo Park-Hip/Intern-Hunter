@@ -4,9 +4,27 @@ This document defines the planned runtime architecture for the database-agent la
 
 ## Status
 
-- Planning only.
-- No runtime design in this file should be assumed to exist yet.
+- A thin `POST /agent/ask` route and stub service seam exist in code today.
+- No full runtime design in this file should be assumed to exist yet beyond that scaffold.
 - Existing crawler, ETL, search, resume matching, and schema components are out of scope for modification in this phase unless explicitly expanded later.
+
+## Current Implemented Slice
+
+The current repository includes only the earliest agent scaffold:
+
+- `src/internhunter/api/routes/agent_routes.py` wires `POST /agent/ask`
+- `src/internhunter/api/schemas/agent.py` defines the typed HTTP contract baseline
+- `src/agents/service.py` returns stub `ok` and preview envelopes only
+
+The current code does not yet implement the full runtime described below:
+
+- no pre-agent guardrails
+- no real tool routing
+- no SQL generation or validation
+- no SQL execution
+- no summary or chart generation
+- no persistent memory behavior
+- no resume-tool invocation behind `/agent/ask`
 
 ## Purpose
 

@@ -6,6 +6,7 @@
 - `GET /health` -> returns a health check response
 - `GET /jobs/search` -> returns criteria-based or semantic job search results
 - `POST /resume/match` -> uploads resume text, stores the embedding, and returns matched jobs
+- `POST /agent/ask` -> accepts the database-agent request envelope and currently returns a thin stub response
 
 ## Request Shapes
 
@@ -21,7 +22,18 @@
 - `resume_text: str`
 - `limit: int = 5`
 
-The only explicit public request model defined in code is `ResumeMatchRequest` in `src/internhunter/api/routes/demo_routes.py`.
+`POST /agent/ask` request body (`AgentAskRequest` in `src/internhunter/api/schemas/agent.py`):
+
+- `question: str`
+- `session_id: str | null = null`
+- `user_id: str | null = null`
+- `preview_only: bool = false`
+- `include_chart: bool = false`
+- `limit: int | null = null`
+- `include_summary: bool = true`
+- `debug: bool = false`
+
+The explicit public request models currently defined in code are `ResumeMatchRequest` in `src/internhunter/api/routes/demo_routes.py` and `AgentAskRequest` in `src/internhunter/api/schemas/agent.py`.
 
 ## Response Shapes
 
@@ -29,8 +41,15 @@ The only explicit public request model defined in code is `ResumeMatchRequest` i
 - `GET /health` returns a status object with `status`, `db`, and `search`
 - `GET /jobs/search` returns `list[dict]`
 - `POST /resume/match` returns `list[dict]`
+- `POST /agent/ask` returns a typed shared envelope with top-level `status`, `question`, `sql`, `table`, `summary`, `chart`, `warnings`, `metadata`, and `error`
 
 Search and match result rows are repository-backed dictionaries, not dedicated HTTP DTO classes.
+
+The current `/agent/ask` implementation is intentionally narrow:
+
+- normal requests return a stub `status="ok"` envelope
+- `preview_only=true` returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
+- a typed refusal response model exists, but the live route does not emit refusal responses yet
 
 ## Current Error Behavior
 
@@ -40,6 +59,8 @@ Search and match result rows are repository-backed dictionaries, not dedicated H
 - `POST /resume/match` returns `400` when `resume_text` is empty after trimming.
 - `POST /resume/match` returns `404` when no resume can be matched or no jobs are found.
 - `POST /resume/match` returns `500` when upload, embedding, or matching fails.
+- `POST /agent/ask` returns `422` for malformed payloads under the current FastAPI/Pydantic validation path.
+- `POST /agent/ask` currently returns `200` for stub `ok` and preview responses.
 
 ## Data-Layer Failure Types
 
@@ -54,5 +75,6 @@ These appear in `audit_jobs.error_type`:
 ## Notes
 
 - The API surface now centers on search and resume matching.
-- Keep this page aligned with `src/internhunter/api/routes/demo_routes.py`.
-- The live API is mostly untyped at the HTTP boundary apart from `ResumeMatchRequest`.
+- `POST /agent/ask` is now part of the live API surface, but it is still a scaffolded boundary rather than a real SQL-capable agent.
+- Keep this page aligned with `src/internhunter/api/routes/demo_routes.py`, `src/internhunter/api/routes/agent_routes.py`, and `src/internhunter/api/schemas/agent.py`.
+- The live API is still lightly typed at the HTTP boundary outside the `/agent/ask` scaffold.

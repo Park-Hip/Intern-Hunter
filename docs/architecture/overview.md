@@ -22,5 +22,6 @@ TopCV listing pages -> job detail pages -> raw storage -> validation -> LLM extr
 - `src/internhunter/orchestration/` for pipeline orchestration
 - `src/internhunter/search/` and `src/internhunter/resume/` for retrieval and matching
 - `src/internhunter/api/` for public endpoints
+- `src/agents/` for the early database-agent service and shared internal agent types
 
 Future database-agent planning lives under `docs/agent/`.
