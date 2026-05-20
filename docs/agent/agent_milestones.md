@@ -39,12 +39,13 @@ The current agreed direction is:
 - keep tool growth incremental: prove the runtime, then add tools one by one
 - keep unresolved architecture and tech-stack choices open until the relevant research gate closes them
 
+Milestone 1 runtime decisions are now closed and partially shipped. Later milestone choices remain open until their own research gates close.
+
 What is intentionally not decided here:
 
-- concrete agent runtime framework
-- concrete memory backend
-- concrete tracing backend
-- concrete provider implementation details for the agent runtime
+- Milestones after Milestone 1
+- concrete persistent memory backend beyond the first short-session seam
+- concrete tracing backend behind the first replaceable tracing seam
 
 Those are milestone research decisions, not assumptions to bake in early.
 
@@ -66,9 +67,18 @@ The agent runtime is the product center. It should be proven before deeper SQL, 
 - existing API contract baseline
 - existing `src/agents/` package
 
+**Locked Milestone 1 runtime note**
+
+- LangChain agent entrypoint
+- Ollama with `qwen3.5:4b` as the initial provider/model
+- no tools in Milestone 1
+- short session memory only
+- tracing through a replaceable seam
+- SQL generation and execution out of scope
+
 **Research gate required before coding**
 
-Yes.
+Closed for this milestone target.
 
 **Questions to close**
 
@@ -352,5 +362,5 @@ Suggested statuses:
 
 Current status suggestion:
 
-- Milestone 1: `research gate active`
+- Milestone 1: `implementation active` (runtime foundation is live; SQL, charts, and resume tools are still pending later milestones)
 - Milestones 2-8: `not started`

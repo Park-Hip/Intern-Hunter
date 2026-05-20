@@ -6,7 +6,7 @@
 - `GET /health` -> returns a health check response
 - `GET /jobs/search` -> returns criteria-based or semantic job search results
 - `POST /resume/match` -> uploads resume text, stores the embedding, and returns matched jobs
-- `POST /agent/ask` -> accepts the database-agent request envelope and currently returns bounded refusal, preview, or a generic allowed placeholder response
+- `POST /agent/ask` -> accepts the database-agent request envelope and returns bounded refusal, preview-stub, or runtime-backed allowed responses
 
 ## Request Shapes
 
@@ -43,10 +43,12 @@ Search and match result rows are repository-backed dictionaries, not dedicated H
 
 The current `/agent/ask` implementation is intentionally narrow:
 
-- blocked unsafe or out-of-scope requests return a typed `status="refused"` envelope before branch execution
-- allowed prompts return one generic scaffolded `status="ok"` placeholder response
+- blocked unsafe or out-of-scope requests return a typed `status="refused"` envelope before runtime execution
+- allowed prompts now pass through a real Milestone 1 runtime path with no tools enabled; successful live responses depend on the configured local runtime provider being reachable
 - `preview_only=true` still returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
-- SQL/table/summary/chart payloads are optional artifacts that the future runtime may produce; they are not selected through request flags
+- short session memory is wired through caller-provided `session_id` and can be reused across API calls that hit the same runtime instance
+- response metadata always includes a `trace_id`; tracing uses Langfuse when configured and otherwise fails open with a local trace id
+- SQL/table/summary/chart payloads remain optional response artifacts, not request-selected outputs
 - agent query limit policy is internal runtime configuration, not a public request field
 - no live path generates SQL, executes SQL, performs resume matching, or produces charts yet
 
@@ -74,6 +76,6 @@ These appear in `audit_jobs.error_type`:
 ## Notes
 
 - The API surface now centers on search and resume matching.
-- `POST /agent/ask` is now part of the live API surface, with deterministic pre-agent screening and bounded placeholder handling, but it is still a scaffolded boundary rather than a real SQL-capable agent.
+- `POST /agent/ask` is now part of the live API surface, with deterministic pre-agent screening, a runtime-backed allowed path, and a stub preview branch, but it is still not a SQL-capable or tool-using agent.
 - Keep this page aligned with `src/internhunter/api/routes/demo_routes.py`, `src/internhunter/api/routes/agent_routes.py`, and `src/internhunter/api/schemas/agent.py`.
 - The live API is still lightly typed at the HTTP boundary outside the `/agent/ask` scaffold.

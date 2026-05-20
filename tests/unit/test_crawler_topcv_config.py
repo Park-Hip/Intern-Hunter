@@ -87,41 +87,38 @@ def test_topcv_search_seeds_are_loaded_in_order():
 
 
 def test_topcv_search_urls_fall_back_when_seeds_absent():
-    settings = Settings()
+    settings = Settings(crawler=CrawlerSettings(topcv=TopCVCrawlerSettings(search_seeds=[])))
 
     assert settings.crawler.topcv.search_seeds == []
-    assert settings.search_urls == [
-        "https://www.topcv.vn/tim-viec-lam-ai-engineer?sba=1",
-        "https://www.topcv.vn/tim-viec-lam-data-scientist?sba=1",
-    ]
+    assert settings.search_urls == []
 
 
 def test_topcv_crawler_config_defaults_are_preserved():
     topcv = TopCVCrawlerSettings()
 
-    assert topcv.headless is True
+    assert topcv.headless is False
     assert topcv.enable_stealth is True
     assert topcv.user_agent_mode == "random"
     assert topcv.use_persistent_context is False
     assert topcv.user_data_dir is None
     assert topcv.storage_state_path is None
-    assert topcv.page_timeout_ms == 30000
-    assert topcv.delay_before_return_html == 3.0
+    assert topcv.page_timeout_ms == 60000
+    assert topcv.delay_before_return_html == 5.0
     assert topcv.fetch_wait_for == "css:.job-item-search-result"
     assert topcv.wait_for == "css:h1, h2.title, .job-detail-title"
-    assert topcv.screenshot is True
+    assert topcv.screenshot is False
     assert topcv.cache_mode == "bypass"
     assert topcv.magic is True
     assert topcv.simulate_user is True
     assert topcv.remove_overlay_elements is False
     assert topcv.exclude_external_links is True
     assert topcv.word_count_threshold == 5
-    assert topcv.detail_delay_min_seconds == 2.0
-    assert topcv.detail_delay_max_seconds == 5.0
-    assert topcv.blocked_delay_min_seconds == 8.0
-    assert topcv.blocked_delay_max_seconds == 15.0
-    assert topcv.blocked_early_stop_threshold == 2
-    assert topcv.blocked_cooldown_minutes == 60
+    assert topcv.detail_delay_min_seconds == 15.0
+    assert topcv.detail_delay_max_seconds == 30.0
+    assert topcv.blocked_delay_min_seconds == 30.0
+    assert topcv.blocked_delay_max_seconds == 60.0
+    assert topcv.blocked_early_stop_threshold == 1
+    assert topcv.blocked_cooldown_minutes == 180
     assert topcv.proxy_enabled is False
     assert topcv.proxy_servers == [
         "dc.oxylabs.io:8001",
@@ -133,13 +130,13 @@ def test_topcv_crawler_config_defaults_are_preserved():
     assert topcv.proxy_rotation == "round_robin"
     assert topcv.proxy_username_env == "OXYLABS_USERNAME"
     assert topcv.proxy_password_env == "OXYLABS_PASSWORD"
-    assert topcv.search_seeds == []
+    assert [seed.name for seed in topcv.search_seeds] == ["ai_engineer", "data_scientist"]
 
 
 def test_crawler_settings_default_max_retries_is_still_available():
     settings = Settings()
 
-    assert settings.crawler.max_retries == 3
+    assert settings.crawler.max_retries == 2
 
 
 def test_topcv_proxy_is_disabled_by_default():

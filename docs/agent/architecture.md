@@ -4,30 +4,42 @@ This document defines the planned runtime architecture for the database-agent la
 
 ## Status
 
-- A thin `POST /agent/ask` route and service seam exist in code today.
-- No full runtime design in this file should be assumed to exist yet beyond that scaffold.
+- `POST /agent/ask` now has a live Milestone 1 runtime foundation behind the existing route and service seam.
+- No later-milestone tool architecture in this file should be assumed to exist yet beyond the implemented slice below.
 - Existing crawler, ETL, search, resume matching, and schema components are out of scope for modification in this phase unless explicitly expanded later.
 
 ## Current Implemented Slice
 
-The current repository includes an early guarded agent scaffold:
+The current repository includes a guarded Milestone 1 runtime slice:
 
 - `src/internhunter/api/routes/agent_routes.py` wires `POST /agent/ask`
 - `src/internhunter/api/schemas/agent.py` defines the typed HTTP contract baseline
 - `src/agents/guardrail.py` performs deterministic pre-agent screening
-- `src/agents/service.py` currently returns only three live outcomes:
+- `src/agents/service.py` currently returns three live outcomes:
   - refusal for blocked prompts
   - preview stub output when `preview_only=true`
-  - one generic allowed placeholder for all other allowed requests
+  - runtime-backed allowed responses for other allowed requests
+- `src/agents/runtime.py` builds a LangChain-backed no-tool runtime entrypoint for Milestone 1
+- `src/agents/memory.py` provides short in-process session memory keyed by `session_id`
+- `src/agents/tracing.py` provides a tracing seam with Langfuse-backed tracing when configured and fail-open tracing otherwise
 
 The current code does not yet implement the full runtime described below:
 
-- no real tool execution routing
+- no real tool execution routing beyond the no-tool runtime
 - no SQL generation or validation
 - no SQL execution
 - no summary or chart generation
-- no persistent memory behavior
+- no durable memory behavior
 - no live resume-tool invocation behind `/agent/ask`
+
+Milestone 1 runtime planning is now locked to:
+
+- a LangChain agent entrypoint
+- Ollama with `qwen3.5:4b` as the initial provider/model
+- no tools in Milestone 1
+- short session memory only
+- tracing through a replaceable seam
+- SQL generation and execution out of scope for this milestone
 
 ## Purpose
 
@@ -48,9 +60,9 @@ The agent layer should:
 - reuse shared vendor credentials, generic settings loading, logging, and DB/session infrastructure only where helpful
 - avoid using ETL prompt templates, ETL provider client classes, ETL fallback assumptions, or ETL MLflow behavior as the backbone of the agent runtime
 
-The concrete runtime framework remains an explicit research gate.
+For Milestone 1 specifically, the first runtime entrypoint is locked to LangChain. The surrounding module seams should still stay loose enough to replace provider, tracing, memory, or later orchestration choices without a large rewrite.
 
-This document intentionally does not lock a framework choice. The surrounding module seams should stay loose enough that milestone-level research can choose the runtime without a large architectural rewrite.
+Unless a section explicitly says otherwise, the remaining runtime diagrams and component maps in this document describe the broader target architecture for later milestones, not current Milestone 1 behavior. Milestone 1 itself stays limited to a no-tool runtime with short session memory and tracing seams only.
 
 ## Scope And Non-Goals
 
@@ -149,14 +161,14 @@ The database-agent layer should be added as a new application subsystem that:
 - may call the existing resume-matching capability through a bounded internal tool seam
 - does not change crawler, ETL, or stable search/resume APIs
 
-At a high level, the future runtime sits between the public API route and the available bounded tools:
+At a high level, the later-milestone target runtime sits between the public API route and the available bounded tools:
 
 ```mermaid
 flowchart LR
     Client["Client"] --> API["FastAPI Agent Route"]
     API --> Guardrail["Pre-Agent Guardrail"]
     Guardrail --> Agent["Bounded ReAct Runtime"]
-    Memory["Replaceable Persistent Memory"] --> Agent
+    Memory["Replaceable Memory Seam"] --> Agent
     LLM["Agent-Native Provider Layer"] --> Agent
     Obs["Langfuse-First Tracing Seam"] --> Agent
     Agent --> Talk["Casual Talk Handling"]
@@ -298,7 +310,7 @@ Suggested responsibility split inside those new areas:
 - `src/agents/resume_tool.py`
   - adapter around the existing resume-matching capability
 
-This module map should remain valid whether the runtime-framework research gate closes on `LangGraph` or plain `LangChain`.
+This module map should remain valid as Milestone 1 starts with a LangChain entrypoint and later milestones expand the runtime around it.
 
 The exact filenames may change later, but the boundary split should remain.
 
@@ -871,7 +883,7 @@ Future additions should extend the isolated agent/query layers rather than pushi
 
 The following decisions are still open and should be documented explicitly rather than assumed silently:
 
-- what concrete persistent backend session memory uses in MVP behind a replaceable seam
+- what concrete backend should sit behind the replaceable memory seam after Milestone 1
 - whether a dedicated SQL parsing/AST library will be added
 - what concrete model configuration should be used first after runtime-framework research and A/B testing
 - whether summary generation needs more LLM involvement beyond the deterministic-first or hybrid MVP stance

@@ -1,7 +1,13 @@
+app:
+  name: "job-finder"
+  version: "2.0.0"
+  environment: "development"
+
 llm:
   primary_provider: "gemini"
   fallback_provider: "groq"
   validation_model: "gemini-2.5-flash-lite"
+  rate_limit_rpm: 20
   
   gemini:
     model: "gemini-2.5-flash-lite"
@@ -18,6 +24,11 @@ agent:
   memory_limit: 10
   default_query_limit: 50
   max_query_limit: 100
+  provider:
+    name: "ollama"
+    model: "qwen3.5:4b"
+    base_url: "http://127.0.0.1:11434"
+    temperature: 0.2
 
 crawler:
   rate_limit_rpm: 6

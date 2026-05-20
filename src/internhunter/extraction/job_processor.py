@@ -371,7 +371,7 @@ class JobProcessor():
         fail_count = 0
 
         # Smart rate limiting: only sleep the remaining time after LLM call
-        llm_rpm = settings.config_yaml.get("llm", {}).get("rate_limit_rpm", 20)
+        llm_rpm = settings.llm.rate_limit_rpm
         min_interval = 60.0 / llm_rpm if llm_rpm > 0 else 0
 
         for job in jobs:

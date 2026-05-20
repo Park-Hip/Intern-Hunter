@@ -22,9 +22,9 @@ def test_agent_api_returns_refusal_envelope_for_blocked_request():
 
 def test_agent_api_blocked_request_stops_before_allowed_placeholder(monkeypatch):
     def fail_if_called(*args, **kwargs):
-        raise AssertionError("_build_allowed_placeholder_response should not run for blocked requests")
+        raise AssertionError("build_agent_runtime should not run for blocked requests")
 
-    monkeypatch.setattr(agent_service, "_build_allowed_placeholder_response", fail_if_called)
+    monkeypatch.setattr(agent_service, "build_agent_runtime", fail_if_called)
 
     response = client.post(
         "/agent/ask",
@@ -34,9 +34,21 @@ def test_agent_api_blocked_request_stops_before_allowed_placeholder(monkeypatch)
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "refused"
+    assert payload["metadata"]["execution_skipped"] is True
+    assert payload["sql"]["executed_sql"] is None
 
 
-def test_agent_api_allowed_request_returns_generic_placeholder():
+def test_agent_api_allowed_request_uses_runtime_backed_summary(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=["Runtime-backed response."],
+                trace_id="runtime-trace-integration-1",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Thanks for the help"},
@@ -45,14 +57,26 @@ def test_agent_api_allowed_request_returns_generic_placeholder():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Agent endpoint is guardrailed. Real orchestration is not implemented yet."
+    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["warnings"] == ["Runtime-backed response."]
     assert payload["metadata"]["execution_skipped"] is True
+    assert payload["metadata"]["trace_id"] == "runtime-trace-integration-1"
     assert payload["sql"]["executed_sql"] is None
     assert payload["table"] is None
     assert payload["chart"] is None
 
 
-def test_agent_api_resume_like_request_without_user_id_returns_generic_placeholder():
+def test_agent_api_resume_like_request_without_user_id_returns_runtime_backed_summary(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=[],
+                trace_id="runtime-trace-integration-2",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Match my resume to backend internships."},
@@ -61,7 +85,7 @@ def test_agent_api_resume_like_request_without_user_id_returns_generic_placehold
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Agent endpoint is guardrailed. Real orchestration is not implemented yet."
+    assert payload["summary"] == "I can help you explore the job database safely."
     assert payload["error"] is None
     assert payload["metadata"]["execution_skipped"] is True
 
@@ -80,7 +104,17 @@ def test_agent_api_preview_request_returns_preview_placeholder():
     assert payload["metadata"]["execution_skipped"] is True
 
 
-def test_agent_api_allowed_sql_like_request_returns_generic_placeholder():
+def test_agent_api_allowed_sql_like_request_returns_runtime_backed_summary(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=[],
+                trace_id="runtime-trace-integration-3",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Show me machine learning jobs in Ho Chi Minh City."},
@@ -89,7 +123,51 @@ def test_agent_api_allowed_sql_like_request_returns_generic_placeholder():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Agent endpoint is guardrailed. Real orchestration is not implemented yet."
+    assert payload["summary"] == "I can help you explore the job database safely."
     assert payload["metadata"]["execution_skipped"] is True
     assert payload["sql"]["executed_sql"] is None
     assert payload["error"] is None
+
+
+def test_agent_api_reuses_short_memory_with_same_session_id(monkeypatch):
+    """The service should reuse one runtime instance so session memory survives API calls."""
+
+    class FakeRuntime:
+        def __init__(self) -> None:
+            self.history_by_session: dict[str, list[tuple[str, str]]] = {}
+
+        def invoke(self, payload):
+            session_id = payload.session_id or "anonymous"
+            session_history = self.history_by_session.setdefault(session_id, [])
+            previous_questions = [content for role, content in session_history if role == "user"]
+
+            if previous_questions:
+                summary = f"Previously you asked: {previous_questions[-1]}"
+            else:
+                summary = f"Replying to: {payload.question}"
+
+            session_history.append(("user", payload.question))
+            session_history.append(("assistant", summary))
+            return agent_service.AgentRuntimeOutput(
+                summary=summary,
+                warnings=[],
+                trace_id=f"trace-{len(previous_questions) + 1}",
+            )
+
+    build_count = {"value": 0}
+
+    def build_fake_runtime():
+        build_count["value"] += 1
+        return FakeRuntime()
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", build_fake_runtime)
+
+    first = client.post("/agent/ask", json={"question": "hello", "session_id": "session-a"})
+    second = client.post("/agent/ask", json={"question": "what can you do?", "session_id": "session-a"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert build_count["value"] == 1
+    assert first.json()["summary"] == "Replying to: hello"
+    assert second.json()["metadata"]["session_id"] == "session-a"
+    assert second.json()["summary"] == "Previously you asked: hello"

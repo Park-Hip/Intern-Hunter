@@ -5,7 +5,8 @@
 - structlog output from the application
 - `pipeline_runs` rows for ETL summaries
 - `audit_jobs` rows for failures
-- MLflow configuration in `src/config/settings.yaml`
+- typed MLflow defaults from `src/config/settings.yaml`
+- optional Langfuse tracing credentials and host from `.env`
 
 ## What to Watch
 

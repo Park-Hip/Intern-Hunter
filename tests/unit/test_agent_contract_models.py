@@ -244,6 +244,28 @@ def test_ok_response_serialization_supports_sql_and_table_payloads():
     assert payload["metadata"]["user_id"] == "demo-user-123"
 
 
+def test_ok_response_allows_runtime_backed_non_sql_message():
+    response = AgentAskOkResponse(
+        question="What can you do?",
+        sql=AgentSQLPayload(),
+        summary="I can help you explore the job database safely.",
+        metadata=AgentResponseMetadata(
+            limit_applied=False,
+            execution_skipped=True,
+            trace_id="trace-runtime-1",
+            session_id="demo-session",
+            user_id=None,
+        ),
+        warnings=[],
+    )
+
+    payload = response.model_dump(mode="json")
+
+    assert payload["status"] == "ok"
+    assert payload["sql"]["executed_sql"] is None
+    assert payload["metadata"]["trace_id"] == "trace-runtime-1"
+
+
 def test_internal_types_module_exposes_only_minimal_phase_one_baseline():
     assert hasattr(agent_types_module, "AskRequestArtifact")
     assert hasattr(agent_types_module, "SqlCandidateArtifact")

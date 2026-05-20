@@ -32,11 +32,10 @@ except ImportError:
 
 try:
     import mlflow
-    mlflow_cfg = settings.config_yaml.get("mlflow", {})
-    if mlflow_cfg.get("tracking_uri"):
-        mlflow.set_tracking_uri(mlflow_cfg.get("tracking_uri"))
-    if mlflow_cfg.get("experiment"):
-        mlflow.set_experiment(mlflow_cfg.get("experiment"))
+    if settings.mlflow.tracking_uri:
+        mlflow.set_tracking_uri(settings.mlflow.tracking_uri)
+    if settings.mlflow.experiment:
+        mlflow.set_experiment(settings.mlflow.experiment)
     _mlflow_available = True
 except ImportError:
     _mlflow_available = False
@@ -83,14 +82,16 @@ def _render_named_prompt(prompt_name: str, **context) -> str:
 # ============================================================
 class GeminiClient(LLMProvider):
     def __init__(self, model: str | None = None, api_key: str | None = None):
-        self.api_key = api_key or settings.GEMINI_API_KEY.get_secret_value()
+        self.api_key = api_key or (
+            settings.GEMINI_API_KEY.get_secret_value() if settings.GEMINI_API_KEY else None
+        )
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY is not set in environment or passed to constructor.")
 
-        cfg = settings.config_yaml.get("llm", {}).get("gemini", {})
-        self.model = model or cfg.get("model", "gemini-2.5-flash-lite")
-        self.temperature = cfg.get("temperature", 0.1)
-        self.max_tokens = cfg.get("max_tokens", 2048)
+        cfg = settings.llm.gemini
+        self.model = model or cfg.model
+        self.temperature = cfg.temperature
+        self.max_tokens = cfg.max_tokens
         
         self.client = genai.Client(api_key=self.api_key)
         if _mlflow_available:
@@ -166,14 +167,16 @@ class GeminiClient(LLMProvider):
 # ============================================================
 class GroqClient(LLMProvider):
     def __init__(self, api_key: str = None, model: str = None):
-        self.api_key = api_key if api_key else settings.GROQ_API_KEY.get_secret_value()
+        self.api_key = api_key or (
+            settings.GROQ_API_KEY.get_secret_value() if settings.GROQ_API_KEY else None
+        )
         if not self.api_key:
             raise ValueError("GROQ_API_KEY is not set in environment or passed to constructor.")
         
-        cfg = settings.config_yaml.get("llm", {}).get("groq", {})
-        self.model = model or cfg.get("model", "llama-3.3-70b-versatile")
-        self.temperature = cfg.get("temperature", 0.0)
-        self.max_tokens = cfg.get("max_tokens", 1024)
+        cfg = settings.llm.groq
+        self.model = model or cfg.model
+        self.temperature = cfg.temperature
+        self.max_tokens = cfg.max_tokens
         
         self.client = Groq(api_key=self.api_key)
 

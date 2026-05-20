@@ -1,11 +1,43 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BASE_DIR = Path(__file__).resolve().parents[3]
+SETTINGS_YAML_PATH = BASE_DIR / "src" / "config" / "settings.yaml"
+PROMPTS_YAML_PATH = BASE_DIR / "src" / "config" / "prompts.yaml"
+
+
+def _read_yaml_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+
+    with path.open("r", encoding="utf-8") as handle:
+        return yaml.safe_load(handle) or {}
+
+
+SETTINGS_YAML_DEFAULTS = _read_yaml_file(SETTINGS_YAML_PATH)
+
+
+def _default(path: str) -> Any:
+    current: Any = SETTINGS_YAML_DEFAULTS
+    for key in path.split("."):
+        if not isinstance(current, dict) or key not in current:
+            raise RuntimeError(f"Missing required settings.yaml default for '{path}'.")
+        current = current[key]
+    return deepcopy(current)
+
+
+class AppSettings(BaseModel):
+    name: str = Field(default_factory=lambda: _default("app.name"))
+    version: str = Field(default_factory=lambda: _default("app.version"))
+    environment: str = Field(default_factory=lambda: _default("app.environment"))
 
 
 class TopCVCrawlerSettings(BaseModel):
@@ -13,77 +45,114 @@ class TopCVCrawlerSettings(BaseModel):
         name: str
         url: str
 
-    headless: bool = True
-    enable_stealth: bool = True
-    user_agent_mode: str = "random"
-    use_persistent_context: bool = False
-    user_data_dir: str | None = None
-    storage_state_path: str | None = None
-    page_timeout_ms: int = 30000
-    delay_before_return_html: float = 3.0
-    fetch_wait_for: str = "css:.job-item-search-result"
-    wait_for: str = "css:h1, h2.title, .job-detail-title"
-    screenshot: bool = True
-    cache_mode: str = "bypass"
-    magic: bool = True
-    simulate_user: bool = True
-    remove_overlay_elements: bool = False
-    exclude_external_links: bool = True
-    word_count_threshold: int = 5
-    proxy_enabled: bool = False
-    proxy_servers: list[str] = Field(
+    headless: bool = Field(default_factory=lambda: _default("crawler.topcv.headless"))
+    enable_stealth: bool = Field(default_factory=lambda: _default("crawler.topcv.enable_stealth"))
+    user_agent_mode: str = Field(default_factory=lambda: _default("crawler.topcv.user_agent_mode"))
+    use_persistent_context: bool = Field(default_factory=lambda: _default("crawler.topcv.use_persistent_context"))
+    user_data_dir: str | None = Field(default_factory=lambda: _default("crawler.topcv.user_data_dir"))
+    storage_state_path: str | None = Field(default_factory=lambda: _default("crawler.topcv.storage_state_path"))
+    page_timeout_ms: int = Field(default_factory=lambda: _default("crawler.topcv.page_timeout_ms"))
+    delay_before_return_html: float = Field(default_factory=lambda: _default("crawler.topcv.delay_before_return_html"))
+    fetch_wait_for: str = Field(default_factory=lambda: _default("crawler.topcv.fetch_wait_for"))
+    wait_for: str = Field(default_factory=lambda: _default("crawler.topcv.wait_for"))
+    screenshot: bool = Field(default_factory=lambda: _default("crawler.topcv.screenshot"))
+    cache_mode: str = Field(default_factory=lambda: _default("crawler.topcv.cache_mode"))
+    magic: bool = Field(default_factory=lambda: _default("crawler.topcv.magic"))
+    simulate_user: bool = Field(default_factory=lambda: _default("crawler.topcv.simulate_user"))
+    remove_overlay_elements: bool = Field(default_factory=lambda: _default("crawler.topcv.remove_overlay_elements"))
+    exclude_external_links: bool = Field(default_factory=lambda: _default("crawler.topcv.exclude_external_links"))
+    word_count_threshold: int = Field(default_factory=lambda: _default("crawler.topcv.word_count_threshold"))
+    proxy_enabled: bool = Field(default_factory=lambda: _default("crawler.topcv.proxy_enabled"))
+    proxy_servers: list[str] = Field(default_factory=lambda: _default("crawler.topcv.proxy_servers"))
+    proxy_rotation: str = Field(default_factory=lambda: _default("crawler.topcv.proxy_rotation"))
+    proxy_username_env: str = Field(default_factory=lambda: _default("crawler.topcv.proxy_username_env"))
+    proxy_password_env: str = Field(default_factory=lambda: _default("crawler.topcv.proxy_password_env"))
+    detail_delay_min_seconds: float = Field(default_factory=lambda: _default("crawler.topcv.detail_delay_min_seconds"))
+    detail_delay_max_seconds: float = Field(default_factory=lambda: _default("crawler.topcv.detail_delay_max_seconds"))
+    blocked_delay_min_seconds: float = Field(default_factory=lambda: _default("crawler.topcv.blocked_delay_min_seconds"))
+    blocked_delay_max_seconds: float = Field(default_factory=lambda: _default("crawler.topcv.blocked_delay_max_seconds"))
+    blocked_early_stop_threshold: int = Field(default_factory=lambda: _default("crawler.topcv.blocked_early_stop_threshold"))
+    blocked_cooldown_minutes: int = Field(default_factory=lambda: _default("crawler.topcv.blocked_cooldown_minutes"))
+    search_seeds: list[SearchSeed] = Field(
         default_factory=lambda: [
-            "dc.oxylabs.io:8001",
-            "dc.oxylabs.io:8002",
-            "dc.oxylabs.io:8003",
-            "dc.oxylabs.io:8004",
-            "dc.oxylabs.io:8005",
+            TopCVCrawlerSettings.SearchSeed.model_validate(seed)
+            for seed in _default("crawler.topcv.search_seeds")
         ]
     )
-    proxy_rotation: str = "round_robin"
-    proxy_username_env: str = "OXYLABS_USERNAME"
-    proxy_password_env: str = "OXYLABS_PASSWORD"
-    detail_delay_min_seconds: float = 2.0
-    detail_delay_max_seconds: float = 5.0
-    blocked_delay_min_seconds: float = 8.0
-    blocked_delay_max_seconds: float = 15.0
-    blocked_early_stop_threshold: int = 2
-    blocked_cooldown_minutes: int = 60
-    search_seeds: list[SearchSeed] = Field(default_factory=list)
 
 
 class CrawlerSettings(BaseModel):
-    rate_limit_rpm: int = 20
-    max_retries: int = 3
-    max_pages: int = 5
-    extract_delay_min: float = 10.0
-    extract_delay_max: float = 15.0
+    rate_limit_rpm: int = Field(default_factory=lambda: _default("crawler.rate_limit_rpm"))
+    max_retries: int = Field(default_factory=lambda: _default("crawler.max_retries"))
+    max_pages: int = Field(default_factory=lambda: _default("crawler.max_pages"))
+    extract_delay_min: float = Field(default_factory=lambda: _default("crawler.extract_delay_min"))
+    extract_delay_max: float = Field(default_factory=lambda: _default("crawler.extract_delay_max"))
     topcv: TopCVCrawlerSettings = Field(default_factory=TopCVCrawlerSettings)
 
 
+class AgentProviderSettings(BaseModel):
+    name: str = Field(default_factory=lambda: _default("agent.provider.name"))
+    model: str = Field(default_factory=lambda: _default("agent.provider.model"))
+    base_url: str = Field(default_factory=lambda: _default("agent.provider.base_url"))
+    temperature: float = Field(default_factory=lambda: _default("agent.provider.temperature"))
+
+
 class AgentSettings(BaseModel):
-    max_iterations: int = 5
-    memory_limit: int = 10
-    default_query_limit: int = 50
-    max_query_limit: int = 100
+    max_iterations: int = Field(default_factory=lambda: _default("agent.max_iterations"))
+    memory_limit: int = Field(default_factory=lambda: _default("agent.memory_limit"))
+    default_query_limit: int = Field(default_factory=lambda: _default("agent.default_query_limit"))
+    max_query_limit: int = Field(default_factory=lambda: _default("agent.max_query_limit"))
+    provider: AgentProviderSettings = Field(default_factory=AgentProviderSettings)
+
+
+class LLMProviderSettings(BaseModel):
+    model: str
+    temperature: float
+    max_tokens: int
+
+
+class LLMSettings(BaseModel):
+    primary_provider: str = Field(default_factory=lambda: _default("llm.primary_provider"))
+    fallback_provider: str = Field(default_factory=lambda: _default("llm.fallback_provider"))
+    validation_model: str = Field(default_factory=lambda: _default("llm.validation_model"))
+    rate_limit_rpm: int = Field(default_factory=lambda: _default("llm.rate_limit_rpm"))
+    gemini: LLMProviderSettings = Field(default_factory=lambda: LLMProviderSettings.model_validate(_default("llm.gemini")))
+    groq: LLMProviderSettings = Field(default_factory=lambda: LLMProviderSettings.model_validate(_default("llm.groq")))
+
+
+class LoggingSettings(BaseModel):
+    format: str = Field(default_factory=lambda: _default("logging.format"))
+    level: str = Field(default_factory=lambda: _default("logging.level"))
+
+
+class MLflowSettings(BaseModel):
+    tracking_uri: str = Field(default_factory=lambda: _default("mlflow.tracking_uri"))
+    experiment: str = Field(default_factory=lambda: _default("mlflow.experiment"))
 
 
 class Settings(BaseSettings):
     GEMINI_API_KEY: SecretStr | None = None
     GROQ_API_KEY: SecretStr | None = None
     DB_URL: SecretStr | None = None
-    DS_URL: str = "https://www.topcv.vn/tim-viec-lam-data-scientist?sba=1"
-    AIE_URL: str = "https://www.topcv.vn/tim-viec-lam-ai-engineer?sba=1"
+    POSTGRES_PASSWORD: SecretStr | None = None
+    LANGFUSE_PUBLIC_KEY: SecretStr | None = None
+    LANGFUSE_SECRET_KEY: SecretStr | None = None
+    LANGFUSE_HOST: str | None = None
 
-    APP_NAME: str = "job-finder"
-    APP_VERSION: str = "2.0.0"
-    ENVIRONMENT: str = "development"
-    BASE_DIR: Path = Path(__file__).resolve().parents[3]
+    APP_NAME: str | None = None
+    APP_VERSION: str | None = None
+    ENVIRONMENT: str | None = None
+    MLFLOW_TRACKING_URI: str | None = None
+    MLFLOW_EXPERIMENT: str | None = None
 
+    BASE_DIR: Path = BASE_DIR
+    app: AppSettings = Field(default_factory=AppSettings)
     crawler: CrawlerSettings = Field(default_factory=CrawlerSettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
-    config_yaml: Dict[str, Any] = {}
-    prompts_yaml: Dict[str, Any] = {}
+    llm: LLMSettings = Field(default_factory=LLMSettings)
+    logging: LoggingSettings = Field(default_factory=LoggingSettings)
+    mlflow: MLflowSettings = Field(default_factory=MLflowSettings)
+    prompts_yaml: dict[str, Any] = Field(default_factory=dict)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -93,14 +162,7 @@ class Settings(BaseSettings):
 
     @property
     def search_urls(self) -> list[str]:
-        # Prefer configured TopCV search seeds from settings.yaml when present.
-        seed_urls = [seed.url for seed in self.crawler.topcv.search_seeds if seed.url]
-        if seed_urls:
-            return seed_urls
-
-        # Backward-compatible fallback for older configs that still rely on the
-        # legacy hard-coded TopCV seed constants.
-        return [self.AIE_URL, self.DS_URL]
+        return [seed.url for seed in self.crawler.topcv.search_seeds if seed.url]
 
     def get_prompt(self, name: str) -> str:
         return self.prompts_yaml.get("prompts", {}).get(name, "")
@@ -115,27 +177,45 @@ class Settings(BaseSettings):
         return Template(template).render(**context)
 
 
+def _apply_env_overrides(loaded: Settings) -> Settings:
+    loaded.app.name = loaded.APP_NAME or loaded.app.name
+    loaded.APP_NAME = loaded.app.name
+
+    loaded.app.version = loaded.APP_VERSION or loaded.app.version
+    loaded.APP_VERSION = loaded.app.version
+
+    loaded.app.environment = loaded.ENVIRONMENT or loaded.app.environment
+    loaded.ENVIRONMENT = loaded.app.environment
+
+    loaded.mlflow.tracking_uri = loaded.MLFLOW_TRACKING_URI or loaded.mlflow.tracking_uri
+    loaded.MLFLOW_TRACKING_URI = loaded.mlflow.tracking_uri
+
+    loaded.mlflow.experiment = loaded.MLFLOW_EXPERIMENT or loaded.mlflow.experiment
+    loaded.MLFLOW_EXPERIMENT = loaded.mlflow.experiment
+
+    return loaded
+
+
 def load_settings() -> Settings:
     loaded = Settings()
-
-    config_path = loaded.BASE_DIR / "src" / "config" / "settings.yaml"
-    if config_path.exists():
-        with config_path.open("r", encoding="utf-8") as f:
-            config_yaml = yaml.safe_load(f) or {}
-            loaded.config_yaml = config_yaml
-            if "crawler" in config_yaml:
-                loaded.crawler = CrawlerSettings(**config_yaml["crawler"])
-            if "agent" in config_yaml:
-                loaded.agent = AgentSettings(**config_yaml["agent"])
-
-    prompts_path = loaded.BASE_DIR / "src" / "config" / "prompts.yaml"
-    if prompts_path.exists():
-        with prompts_path.open("r", encoding="utf-8") as f:
-            loaded.prompts_yaml = yaml.safe_load(f) or {}
-
+    loaded = _apply_env_overrides(loaded)
+    loaded.prompts_yaml = _read_yaml_file(PROMPTS_YAML_PATH)
     return loaded
 
 
 settings = load_settings()
 
-__all__ = ["AgentSettings", "CrawlerSettings", "Settings", "TopCVCrawlerSettings", "load_settings", "settings"]
+__all__ = [
+    "AgentProviderSettings",
+    "AgentSettings",
+    "AppSettings",
+    "CrawlerSettings",
+    "LLMProviderSettings",
+    "LLMSettings",
+    "LoggingSettings",
+    "MLflowSettings",
+    "Settings",
+    "TopCVCrawlerSettings",
+    "load_settings",
+    "settings",
+]

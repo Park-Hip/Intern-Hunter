@@ -39,7 +39,7 @@ The following backend slices are working end to end in the local environment:
 1. `GET /health`
 2. `GET /jobs/search`
 3. `POST /resume/match`
-4. `POST /agent/ask` (guardrail + bounded placeholder handling for the database-agent phase)
+4. `POST /agent/ask` (guardrail + runtime-backed allowed path + preview stub for the database-agent phase)
 
 See [API Overview](../api/overview.md) for the live API surface.
 
@@ -49,6 +49,12 @@ See [API Overview](../api/overview.md) for the live API surface.
 - Pipeline CLI wrapper: `src/run_pipeline.py`
 - Prefect orchestration: `src/internhunter/orchestration/`
 - Smoke and maintenance scripts: `src/scripts/`
+
+## Configuration Behavior
+
+- Normal runtime defaults now come from `src/config/settings.yaml`.
+- `.env` is used for secrets and deployment-specific overrides such as `DB_URL`, provider keys, Langfuse credentials, environment name, and optional MLflow overrides.
+- `crawler.topcv.search_seeds` is the only default source for crawler search URLs.
 
 ## Known Modules and Files
 
@@ -83,7 +89,7 @@ See [API Overview](../api/overview.md) for the live API surface.
 
 - The canonical ingestion entry point is `src/internhunter/orchestration/ingestion_flow.py`, with `src/run_pipeline.py` as the supported CLI wrapper.
 - Search and resume matching exist as dedicated repository-backed code and are exposed through the demo API endpoints.
-- `POST /agent/ask` now performs deterministic pre-agent screening, preserves the preview placeholder path, and otherwise returns one generic allowed placeholder response. The live request contract is minimal (`question`, optional `session_id`, optional `user_id`, optional `preview_only`), while query-limit policy is internal agent configuration. Real SQL generation, validation, execution, charting, session memory, and live resume-tool routing are not implemented yet.
+- `POST /agent/ask` now performs deterministic pre-agent screening, keeps the preview stub path, and routes other allowed requests through the Milestone 1 runtime foundation. The live request contract is minimal (`question`, optional `session_id`, optional `user_id`, optional `preview_only`), query-limit policy remains internal agent configuration, short in-process session memory is wired through `session_id`, and tracing now has a real seam with Langfuse-backed tracing when configured and fail-open tracing otherwise. The current default allowed-path runtime depends on a responsive local Ollama provider. Real SQL generation, validation, execution, charting, and live resume-tool routing are still not implemented.
 - Test coverage is present, but much of it is still narrow and heavily mocked.
 
 ## Required Environment
@@ -117,7 +123,7 @@ The MVP backend works, but the following limitations are still known:
 13. Global processing can still run without `crawl_run_id` when you want legacy backlog behavior.
 14. Resume match explanations are curated and conservative; they can miss synonyms or Vietnamese phrasing.
 15. Ranking still comes from embeddings; explanations are added after the semantic results are returned.
-16. `/agent/ask` can now return scaffolded refusal, preview, or a generic allowed `ok` placeholder envelope, but it still does not perform real SQL generation/execution or real resume matching. SQL/table/summary/chart fields remain optional response artifacts, not request-selected outputs.
+16. `/agent/ask` can now return guardrail refusals, preview-stub responses, or runtime-backed allowed `ok` responses with reusable short session memory keyed by `session_id`, but it still does not perform real SQL generation/execution, chart generation, or real resume-tool execution. SQL/table/summary/chart fields remain optional response artifacts, not request-selected outputs.
 
 ## Verification Commands
 

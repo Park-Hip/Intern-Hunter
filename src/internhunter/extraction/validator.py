@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 class JobValidator:
     def __init__(self):
         # Use lite model for cheap validation — configurable via settings.yaml
-        validation_model = settings.config_yaml.get("llm", {}).get("validation_model", "gemini-2.0-flash-lite")
+        validation_model = settings.llm.validation_model
         self.lite_client = GeminiClient(model=validation_model)
         
     @staticmethod

@@ -13,7 +13,7 @@ InternHunter is a TopCV-focused job-finder backend that crawls jobs, stores raw 
 - resume upload -> embedding
 - resume matching -> jobs
 - resume match explanations
-- bounded `/agent/ask` guardrail scaffold
+- bounded `/agent/ask` runtime foundation
 - minimal local API demo
 
 ## Quickstart
@@ -24,6 +24,8 @@ Make sure PostgreSQL is running and set:
 
 - `DB_URL`
 - Gemini API key for embeddings and resume matching
+
+Normal runtime defaults live in `src/config/settings.yaml`. Use `.env` for secrets and deployment-specific overrides.
 
 If your local database is missing the latest columns, run:
 
@@ -81,7 +83,7 @@ The script checks:
 - `GET /health`
 - `GET /jobs/search` (`mode=criteria` by default, `mode=semantic` available when the Gemini embedding key is configured)
 - `POST /resume/match` returns matched jobs plus `matched_skills`, `unmatched_resume_skills`, and `reason`
-- `POST /agent/ask` returns a typed database-agent envelope with deterministic refusal, preview, and generic allowed placeholder behavior behind a minimal request contract
+- `POST /agent/ask` returns a typed database-agent envelope with deterministic guardrail refusals, a preview stub path, and a runtime-backed allowed path with short session memory and request tracing metadata when the configured local Ollama model is responsive
 
 Examples:
 

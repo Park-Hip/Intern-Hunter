@@ -20,6 +20,11 @@ def test_foundation_modules_import():
     assert logger is not None
     assert new_settings is legacy_settings
     assert new_settings.APP_NAME == "job-finder"
+    assert new_settings.APP_VERSION == "2.0.0"
+    assert new_settings.ENVIRONMENT == "development"
+    assert new_settings.llm.primary_provider == "gemini"
+    assert new_settings.logging.level == "INFO"
+    assert new_settings.mlflow.experiment == "job-finder"
     assert isinstance(new_settings.search_urls, list)
     assert len(new_settings.search_urls) == 2
     assert new_settings.search_urls[0].endswith("ai-engineer?sba=1")

@@ -4,7 +4,7 @@
 
 - Logging is configured through `src/internhunter/common/logging.py`.
 - structlog context binding is used for run IDs and phase labels.
-- The output format is driven by `src/config/settings.yaml`.
+- The output format and level are read from the typed `settings.logging` section loaded from `src/config/settings.yaml`.
 
 ## Rules
 

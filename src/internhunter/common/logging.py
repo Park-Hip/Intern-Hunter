@@ -47,9 +47,8 @@ def get_processors(log_format: str) -> List[Processor]:
 
 
 def configure_logging() -> None:
-    log_cfg = settings.config_yaml.get("logging", {})
-    log_format = log_cfg.get("format", "console").lower()
-    log_level = log_cfg.get("level", "INFO").upper()
+    log_format = settings.logging.format.lower()
+    log_level = settings.logging.level.upper()
 
     # Ensure the process can safely print Crawl4AI progress symbols and other Unicode
     # log text on Windows consoles without raising UnicodeEncodeError.

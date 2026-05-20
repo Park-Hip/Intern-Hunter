@@ -5,8 +5,9 @@ This document defines the planned HTTP contract for the database-agent layer.
 ## Status
 
 - `POST /agent/ask`, the request/response models, and a thin orchestration seam are implemented as a scaffold.
-- The current live behavior is intentionally narrow: deterministic refusals for blocked prompts, a preview stub when `preview_only=true`, and one generic allowed placeholder for all other allowed requests.
-- Real SQL generation, validation, execution, charting, session memory, and tool routing are still future work behind the existing endpoint.
+- The current live behavior is intentionally narrow: deterministic refusals for blocked prompts, a preview stub when `preview_only=true`, and a runtime-backed non-SQL `ok` response for other allowed requests.
+- Real SQL generation, validation, execution, and charting are still future work behind the existing endpoint.
+- Milestone 1 runtime work currently adds only a runtime-backed non-SQL response path with short session memory and tracing seams.
 - Existing search and resume-matching endpoints remain unchanged in this phase.
 
 ## Purpose
@@ -20,12 +21,16 @@ This document defines the planned HTTP contract for the database-agent layer.
 
 ## Runtime Note
 
-The internal runtime framework is not yet locked in this document.
+Milestone 1 locks the first runtime target to:
 
-- `LangGraph` is a leading candidate
-- plain `LangChain` runtime remains a valid option
+- a LangChain agent entrypoint
+- Ollama with `qwen3.5:4b` as the initial provider/model
+- no tools in Milestone 1
+- short session memory only
+- tracing through a replaceable seam
+- SQL generation and execution out of scope
 
-The HTTP contract should remain stable regardless of which internal runtime framework is chosen after research closure.
+The HTTP contract should remain stable as these internal runtime pieces evolve.
 
 ## MVP Scope
 
@@ -125,8 +130,8 @@ The endpoint may also include:
 - Optional conversation/session identifier supplied by the client.
 - If supplied, follow-up questions may use prior session context.
 - Session memory is scoped to the session, not to an authenticated user.
-- MVP requires persistent session memory across app restarts, but the concrete backend is still deferred.
-- The memory layer should remain replaceable; `Mem0` is a current candidate, not a locked requirement.
+- Milestone 1 scope is short session memory only.
+- The memory layer should remain replaceable.
 - `session_id` is not a substitute for authenticated identity and is distinct from the existing resume-matching `user_id`.
 
 #### `user_id`
@@ -484,7 +489,7 @@ Error object rules:
 Use `200 OK` when the request payload is valid and the system returns any of the following:
 
 - the current scaffolded preview response
-- the current scaffolded generic allowed placeholder response
+- the current runtime-backed allowed response
 - the current scaffolded safe refusal response
 - future normal query results
 - future empty query results
@@ -560,7 +565,7 @@ The contract does not promise:
 
 - Session memory is supported through caller-provided `session_id`.
 - Follow-up questions may use prior context from the same session.
-- MVP requires session memory that persists across app restarts, but the concrete backend remains deferred and should stay replaceable.
+- Milestone 1 supports short session memory only, behind a replaceable seam.
 - Memory is intended for short follow-up workflows such as:
   - "Show me AI engineer jobs in Hanoi."
   - "Now filter to senior roles."
@@ -600,7 +605,7 @@ The current scaffolded implementation should validate at least the following beh
 
 - blocked prompts return `200` with `status="refused"` and safe machine-readable error fields
 - `preview_only=true` returns validated SQL, skips execution, and sets `execution_skipped=true`
-- allowed prompts return one generic `status="ok"` placeholder response
+- allowed prompts return a runtime-backed `status="ok"` response
 - malformed requests return `422`
 - `trace_id` is always present in metadata
 - `limit_applied` and `execution_skipped` are returned consistently

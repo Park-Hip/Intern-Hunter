@@ -1,12 +1,23 @@
 from fastapi.testclient import TestClient
 
+import src.agents.service as agent_service
 from src.internhunter.api.app import app
 
 
 client = TestClient(app)
 
 
-def test_agent_ask_endpoint_exists_and_returns_stub_ok():
+def test_agent_ask_endpoint_exists_and_returns_runtime_backed_ok(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=["Runtime-backed response."],
+                trace_id="runtime-trace-route-1",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={
@@ -27,6 +38,9 @@ def test_agent_ask_endpoint_exists_and_returns_stub_ok():
     assert payload["table"] is None
     assert payload["chart"] is None
     assert payload["error"] is None
+    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["warnings"] == ["Runtime-backed response."]
+    assert payload["metadata"]["trace_id"] == "runtime-trace-route-1"
     assert payload["metadata"]["execution_skipped"] is True
 
 
@@ -82,6 +96,7 @@ def test_agent_ask_endpoint_refuses_profanity():
     assert payload["status"] == "refused"
     assert payload["error"]["category"] == "sensitive_content"
     assert payload["metadata"]["execution_skipped"] is True
+    assert payload["sql"]["executed_sql"] is None
 
 
 def test_agent_ask_endpoint_refuses_unrelated_topic():
@@ -94,6 +109,8 @@ def test_agent_ask_endpoint_refuses_unrelated_topic():
     payload = response.json()
     assert payload["status"] == "refused"
     assert payload["error"]["category"] == "out_of_scope"
+    assert payload["metadata"]["execution_skipped"] is True
+    assert payload["sql"]["executed_sql"] is None
 
 
 def test_agent_ask_endpoint_refuses_destructive_sql_prompt():
@@ -107,9 +124,21 @@ def test_agent_ask_endpoint_refuses_destructive_sql_prompt():
     assert payload["status"] == "refused"
     assert payload["error"]["code"] == "unsafe_sql"
     assert payload["error"]["category"] == "destructive_request"
+    assert payload["metadata"]["execution_skipped"] is True
+    assert payload["sql"]["executed_sql"] is None
 
 
-def test_agent_ask_endpoint_returns_generic_ok_placeholder_for_allowed_request():
+def test_agent_ask_endpoint_returns_runtime_backed_summary_for_allowed_request(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=[],
+                trace_id="runtime-trace-route-2",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Hello"},
@@ -118,13 +147,24 @@ def test_agent_ask_endpoint_returns_generic_ok_placeholder_for_allowed_request()
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Agent endpoint is guardrailed. Real orchestration is not implemented yet."
-    assert payload["warnings"] == ["Stub response only. No SQL was generated or executed."]
+    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["warnings"] == []
     assert payload["sql"]["executed_sql"] is None
+    assert payload["metadata"]["trace_id"] == "runtime-trace-route-2"
     assert payload["metadata"]["execution_skipped"] is True
 
 
-def test_agent_ask_endpoint_returns_generic_ok_placeholder_for_help():
+def test_agent_ask_endpoint_returns_runtime_backed_summary_for_help(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=["I can answer questions about the job database."],
+                trace_id="runtime-trace-route-3",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "help"},
@@ -133,12 +173,22 @@ def test_agent_ask_endpoint_returns_generic_ok_placeholder_for_help():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Agent endpoint is guardrailed. Real orchestration is not implemented yet."
-    assert payload["warnings"] == ["Stub response only. No SQL was generated or executed."]
+    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["warnings"] == ["I can answer questions about the job database."]
     assert payload["metadata"]["execution_skipped"] is True
 
 
-def test_agent_ask_endpoint_allows_resume_like_request_without_user_id():
+def test_agent_ask_endpoint_allows_resume_like_request_without_user_id(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=[],
+                trace_id="runtime-trace-route-4",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Match my resume to data analyst jobs."},
@@ -147,11 +197,21 @@ def test_agent_ask_endpoint_allows_resume_like_request_without_user_id():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Agent endpoint is guardrailed. Real orchestration is not implemented yet."
+    assert payload["summary"] == "I can help you explore the job database safely."
     assert payload["error"] is None
 
 
-def test_agent_ask_endpoint_allows_safe_sql_like_question():
+def test_agent_ask_endpoint_allows_safe_sql_like_question(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                summary="I can help you explore the job database safely.",
+                warnings=[],
+                trace_id="runtime-trace-route-5",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Count data scientist jobs by city."},
