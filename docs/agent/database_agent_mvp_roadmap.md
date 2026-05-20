@@ -1,7 +1,7 @@
 # Database Agent MVP Roadmap
 
 ## Current State
-InternHunter already has the core platform pieces that the database-agent MVP can build on: a FastAPI app, SQLAlchemy session management, `clean_jobs` as the product-facing structured table, existing LLM provider infrastructure, and existing search/resume APIs. For this agent specifically, the implementation direction is to use a LangChain-native provider path and a bounded ReAct-style tool-routing flow rather than a SQL-only assistant. The current public API lives in `src/internhunter/api/app.py` and only mounts `demo_routes.py`, so there is no agent route yet. Storage boundaries are already clear: ORM models and sessions live under `src/internhunter/storage/`, ETL persistence logic lives in `src/internhunter/storage/repositories/etl.py`, and search logic lives in `src/internhunter/search/repository.py`. The approved MVP stance is SQL-first but bounded multi-tool, with light small-talk support and guarded resume matching behind the same endpoint.
+InternHunter already has the core platform pieces that the database-agent MVP can build on: a FastAPI app, SQLAlchemy session management, `clean_jobs` as the product-facing structured table, existing LLM provider infrastructure, and existing search/resume APIs. For this agent specifically, the implementation direction is to use a LangChain-native provider path and a bounded ReAct-style tool-routing flow rather than a SQL-only assistant. The current public API lives in `src/internhunter/api/app.py` and now mounts both the demo routes and `POST /agent/ask`. Storage boundaries are already clear: ORM models and sessions live under `src/internhunter/storage/`, ETL persistence logic lives in `src/internhunter/storage/repositories/etl.py`, and search logic lives in `src/internhunter/search/repository.py`. The approved MVP stance is SQL-first but bounded multi-tool, with light small-talk support and guarded resume matching behind the same endpoint.
 
 What is already decided:
 - MVP query scope is `clean_jobs` only.
@@ -24,14 +24,13 @@ What is already decided:
 - Existing search and resume APIs remain unchanged.
 
 What is still missing:
-- No agent modules exist yet under `src/agents/` or `src/services/query/`.
+- Agent scaffolding exists under `src/agents/`, but real SQL generation/execution and resume-tool execution are still missing.
 - No SQL validator or query executor exists for the agent flow.
 - No session-memory implementation exists yet for `session_id`.
-- No tool-routing implementation exists yet for choosing between SQL/query, chart follow-up, and resume matching.
+- No production-grade tool-routing implementation exists yet for choosing between SQL/query, chart follow-up, and resume matching.
 - No resume-tool adapter exists yet for bounded resume-matching access through the agent.
-- No agent route exists.
-- No end-to-end ask flow exists.
-- No agent-specific tests exist yet.
+- No end-to-end ask flow with real SQL or resume execution exists yet.
+- No agent-specific tests exist yet beyond the current guardrail, contract, route, and integration scaffold coverage.
 - The agent docs now define intended contracts, but most of them are still planning documents rather than implemented behavior.
 
 What is frozen by `AGENTS.md`:

@@ -13,7 +13,7 @@ Deliver the first end-to-end coding wave of the database-agent MVP so the repo g
 - [ ] No joins, CTEs, subqueries, or public raw SQL mode.
 - [ ] One public endpoint only: `POST /agent/ask`.
 - [ ] Runtime flow stays fixed:
-  - request -> pre-agent guardrail -> bounded ReAct/tool selection -> SQL or resume or small-talk path -> validation -> execution -> result shaping -> response
+  - request -> pre-agent guardrail -> preview-or-placeholder orchestration -> validation -> execution -> result shaping -> response
 - [ ] SQL validation is mandatory.
 - [ ] The executor must accept validated SQL only.
 - [ ] `user_id` must not affect SQL scope or permissions.
@@ -28,7 +28,7 @@ Deliver the first end-to-end coding wave of the database-agent MVP so the repo g
 
 1. [x] Contract scaffolding and internal DTO baseline
 2. [ ] Route and orchestration skeleton
-3. [ ] Pre-agent guardrail and bounded routing skeleton
+3. [ ] Pre-agent guardrail and bounded placeholder skeleton
 4. [ ] SQL generation seam and provider integration boundary
 5. [ ] SQL validator
 6. [ ] Validated read-only executor and table normalization
@@ -126,17 +126,24 @@ Deliver the first end-to-end coding wave of the database-agent MVP so the repo g
 
 - [x] Update roadmap checklist item for route exposure when complete
 
-### 3. Pre-Agent Guardrail And Bounded Routing Skeleton
+### 3. Pre-Agent Guardrail And Generic Placeholder Skeleton
 
 **Purpose**
 
-- Add the first non-SQL decision layer so requests can be classified into small-talk, SQL-capable, resume-capable, or refusal before deeper execution.
+- Add a deterministic, no-LLM pre-agent guardrail before deeper execution.
+- This layer blocks clearly inappropriate sensitive prompts, prompt-injection attempts, destructive SQL/bypass requests, and unrelated out-of-scope prompts before the agent runs.
+- For allowed requests in this phase, the service returns either the preview placeholder or one generic allowed placeholder response.
 
 **Scope**
 
-- lightweight request screening
-- narrow routing skeleton
-- no full intent-router subsystem
+- lightweight deterministic request screening
+- sensitive-content blocking for categories such as sexual content, war or violent-conflict content, rude/profane abuse, harassment, and similar clearly inappropriate prompts
+- prompt-injection blocking when the prompt tries to override system, safety, or tool rules
+- destructive SQL and SQL-bypass wording blocking
+- unrelated-topic blocking outside the job-database assistant scope
+- no LLM call
+- no intent-router subsystem
+- no live post-guardrail branch selection
 
 **Key modules/boundaries involved**
 
@@ -146,26 +153,34 @@ Deliver the first end-to-end coding wave of the database-agent MVP so the repo g
 
 **Checklist**
 
-- [ ] Add lightweight pre-agent request screening
-- [ ] Add bounded branch selection for SQL, resume, small-talk, and refusal
-- [ ] Keep the branch logic narrow and reversible
+- [x] Add lightweight deterministic pre-agent screening
+- [x] Return a safe refusal envelope for blocked prompts
+- [x] Block unrelated topics outside the job-database assistant scope in the guardrail
+- [x] Add one generic allowed placeholder response behind the guardrail
+- [x] Keep the guardrail rules narrow, testable, and reversible
 
 **Tests required**
 
-- [ ] small-talk request routes to bounded conversational response
-- [ ] obviously unsupported request refuses safely
-- [ ] SQL-like request enters SQL-capable branch
-- [ ] resume request without `user_id` can be marked for refusal
+- [x] harmless job/database request passes the guardrail
+- [x] schema/meta request passes the guardrail
+- [x] unrelated request refuses safely before branch execution
+- [x] sexual-content request refuses safely before agent execution
+- [x] war or violent-conflict request refuses safely before agent execution
+- [x] rude/profane abuse refuses safely before agent execution
+- [x] prompt-injection attempt that tries to override system/tool rules refuses safely before agent execution
+- [x] destructive SQL or SQL-bypass request refuses safely before agent execution
 
 **Definition of done**
 
-- [ ] The orchestrator can select the top-level branch safely.
-- [ ] No branch can bypass refusal handling.
-- [ ] Small-talk is handled without touching SQL.
+- [x] The pre-agent guardrail blocks the documented sensitive-content, prompt-injection, destructive-request, and out-of-scope categories before branch execution.
+- [x] The guardrail performs no LLM calls.
+- [x] The guardrail applies bounded off-topic blocking for Phase 3.
+- [x] Allowed requests flow only into preview handling or one generic allowed placeholder response.
+- [x] No path can bypass refusal handling.
 
 **Doc/checklist updates**
 
-- [ ] Update docs only if branch semantics differ from the approved bounded behavior
+- [x] Update docs to reflect the Phase 3 guardrail boundaries and live `/agent/ask` behavior
 
 ### 4. SQL Generation Seam And Provider Integration Boundary
 
@@ -587,7 +602,7 @@ Deliver the first end-to-end coding wave of the database-agent MVP so the repo g
 ## Risks During Implementation
 
 - [ ] Routing complexity grows too early
-  - Containment: keep the first routing skeleton minimal and bounded; prefer refusal over clever branching.
+  - Containment: keep the first placeholder and context checks minimal and bounded; prefer refusal over clever branching.
 - [ ] SQL generation and validation get coupled
   - Containment: keep the validator independently testable and mandatory before execution.
 - [ ] Resume path starts acting like a broader user-data tool

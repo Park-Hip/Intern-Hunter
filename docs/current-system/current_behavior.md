@@ -39,7 +39,7 @@ The following backend slices are working end to end in the local environment:
 1. `GET /health`
 2. `GET /jobs/search`
 3. `POST /resume/match`
-4. `POST /agent/ask` (thin stub route for the database-agent phase)
+4. `POST /agent/ask` (guardrail + bounded placeholder handling for the database-agent phase)
 
 See [API Overview](../api/overview.md) for the live API surface.
 
@@ -83,7 +83,7 @@ See [API Overview](../api/overview.md) for the live API surface.
 
 - The canonical ingestion entry point is `src/internhunter/orchestration/ingestion_flow.py`, with `src/run_pipeline.py` as the supported CLI wrapper.
 - Search and resume matching exist as dedicated repository-backed code and are exposed through the demo API endpoints.
-- `POST /agent/ask` is wired as a typed stub endpoint only. Real SQL generation, validation, execution, charting, session memory, and resume-tool routing are not implemented yet.
+- `POST /agent/ask` now performs deterministic pre-agent screening, preserves the preview placeholder path, and otherwise returns one generic allowed placeholder response. Real SQL generation, validation, execution, charting, session memory, and live resume-tool routing are not implemented yet.
 - Test coverage is present, but much of it is still narrow and heavily mocked.
 
 ## Required Environment
@@ -117,7 +117,7 @@ The MVP backend works, but the following limitations are still known:
 13. Global processing can still run without `crawl_run_id` when you want legacy backlog behavior.
 14. Resume match explanations are curated and conservative; they can miss synonyms or Vietnamese phrasing.
 15. Ranking still comes from embeddings; explanations are added after the semantic results are returned.
-16. `/agent/ask` currently returns scaffolded `ok` or preview envelopes only and does not perform real agent behavior yet.
+16. `/agent/ask` can now return scaffolded refusal, preview, or a generic allowed `ok` placeholder envelope, but it still does not perform real SQL generation/execution or real resume matching.
 
 ## Verification Commands
 

@@ -7,6 +7,7 @@ import src.agents as agent_types_module
 from src.agents.types import (
     AskRequestArtifact,
     ChartArtifact,
+    GuardrailDecision,
     RefusalArtifact,
     RefusalCategory,
     RefusalCode,
@@ -88,6 +89,7 @@ def test_internal_artifacts_validate_and_serialize():
         category=RefusalCategory.DISALLOWED_STATEMENT,
         message=" blocked ",
     )
+    guardrail = GuardrailDecision(allowed=True)
 
     assert request_artifact.question == "Show me AI engineer jobs in Hanoi."
     assert request_artifact.session_id == "demo-session"
@@ -96,6 +98,7 @@ def test_internal_artifacts_validate_and_serialize():
     assert summary_artifact.text == "Found 1 matching role."
     assert chart_artifact.chart_type == "bar"
     assert refusal_artifact.message == "blocked"
+    assert guardrail.allowed is True
 
 
 def test_preview_response_serialization():
@@ -241,5 +244,7 @@ def test_internal_types_module_exposes_only_minimal_phase_one_baseline():
     assert hasattr(agent_types_module, "RefusalArtifact")
     assert hasattr(agent_types_module, "ChartArtifact")
     assert hasattr(agent_types_module, "SummaryArtifact")
+    assert hasattr(agent_types_module, "GuardrailDecision")
     assert not hasattr(agent_types_module, "AgentBranch")
+    assert not hasattr(agent_types_module, "RouteDecision")
     assert not hasattr(agent_types_module, "AskResultArtifact")

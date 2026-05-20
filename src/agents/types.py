@@ -14,6 +14,9 @@ class RefusalCode(StrEnum):
 
 
 class RefusalCategory(StrEnum):
+    SENSITIVE_CONTENT = "sensitive_content"
+    PROMPT_INJECTION = "prompt_injection"
+    DESTRUCTIVE_REQUEST = "destructive_request"
     DISALLOWED_STATEMENT = "disallowed_statement"
     MULTI_STATEMENT = "multi_statement"
     UNKNOWN_TABLE = "unknown_table"
@@ -110,6 +113,21 @@ class RefusalArtifact(BaseModel):
         if not normalized:
             raise ValueError("refusal message cannot be empty.")
         return normalized
+
+
+class GuardrailDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    allowed: bool
+    refusal: RefusalArtifact | None = None
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> GuardrailDecision:
+        if self.allowed and self.refusal is not None:
+            raise ValueError("allowed guardrail decisions must not include a refusal.")
+        if not self.allowed and self.refusal is None:
+            raise ValueError("blocked guardrail decisions must include a refusal.")
+        return self
 
 
 class AskRequestArtifact(BaseModel):

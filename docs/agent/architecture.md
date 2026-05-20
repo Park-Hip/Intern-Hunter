@@ -4,27 +4,30 @@ This document defines the planned runtime architecture for the database-agent la
 
 ## Status
 
-- A thin `POST /agent/ask` route and stub service seam exist in code today.
+- A thin `POST /agent/ask` route and service seam exist in code today.
 - No full runtime design in this file should be assumed to exist yet beyond that scaffold.
 - Existing crawler, ETL, search, resume matching, and schema components are out of scope for modification in this phase unless explicitly expanded later.
 
 ## Current Implemented Slice
 
-The current repository includes only the earliest agent scaffold:
+The current repository includes an early guarded agent scaffold:
 
 - `src/internhunter/api/routes/agent_routes.py` wires `POST /agent/ask`
 - `src/internhunter/api/schemas/agent.py` defines the typed HTTP contract baseline
-- `src/agents/service.py` returns stub `ok` and preview envelopes only
+- `src/agents/guardrail.py` performs deterministic pre-agent screening
+- `src/agents/service.py` currently returns only three live outcomes:
+  - refusal for blocked prompts
+  - preview stub output when `preview_only=true`
+  - one generic allowed placeholder for all other allowed requests
 
 The current code does not yet implement the full runtime described below:
 
-- no pre-agent guardrails
-- no real tool routing
+- no real tool execution routing
 - no SQL generation or validation
 - no SQL execution
 - no summary or chart generation
 - no persistent memory behavior
-- no resume-tool invocation behind `/agent/ask`
+- no live resume-tool invocation behind `/agent/ask`
 
 ## Purpose
 
@@ -808,7 +811,7 @@ This architecture implies several clean test seams.
 - chart-included branch
 - resume-matching branch
 - same-session follow-up behavior
-- light small-talk branch
+- generic allowed placeholder branch
 
 ### Contract-Level Seams
 

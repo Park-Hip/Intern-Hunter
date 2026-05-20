@@ -6,7 +6,7 @@
 - `GET /health` -> returns a health check response
 - `GET /jobs/search` -> returns criteria-based or semantic job search results
 - `POST /resume/match` -> uploads resume text, stores the embedding, and returns matched jobs
-- `POST /agent/ask` -> accepts the database-agent request envelope and currently returns a thin stub response
+- `POST /agent/ask` -> accepts the database-agent request envelope and currently returns bounded refusal, preview, or a generic allowed placeholder response
 
 ## Request Shapes
 
@@ -47,9 +47,10 @@ Search and match result rows are repository-backed dictionaries, not dedicated H
 
 The current `/agent/ask` implementation is intentionally narrow:
 
-- normal requests return a stub `status="ok"` envelope
-- `preview_only=true` returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
-- a typed refusal response model exists, but the live route does not emit refusal responses yet
+- blocked unsafe or out-of-scope requests return a typed `status="refused"` envelope before branch execution
+- allowed prompts return one generic scaffolded `status="ok"` placeholder response
+- `preview_only=true` still returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
+- no live path generates SQL, executes SQL, performs resume matching, or produces charts yet
 
 ## Current Error Behavior
 
@@ -60,7 +61,7 @@ The current `/agent/ask` implementation is intentionally narrow:
 - `POST /resume/match` returns `404` when no resume can be matched or no jobs are found.
 - `POST /resume/match` returns `500` when upload, embedding, or matching fails.
 - `POST /agent/ask` returns `422` for malformed payloads under the current FastAPI/Pydantic validation path.
-- `POST /agent/ask` currently returns `200` for stub `ok` and preview responses.
+- `POST /agent/ask` currently returns `200` for bounded `ok`, preview, and refusal responses.
 
 ## Data-Layer Failure Types
 
@@ -75,6 +76,6 @@ These appear in `audit_jobs.error_type`:
 ## Notes
 
 - The API surface now centers on search and resume matching.
-- `POST /agent/ask` is now part of the live API surface, but it is still a scaffolded boundary rather than a real SQL-capable agent.
+- `POST /agent/ask` is now part of the live API surface, with deterministic pre-agent screening and bounded placeholder handling, but it is still a scaffolded boundary rather than a real SQL-capable agent.
 - Keep this page aligned with `src/internhunter/api/routes/demo_routes.py`, `src/internhunter/api/routes/agent_routes.py`, and `src/internhunter/api/schemas/agent.py`.
 - The live API is still lightly typed at the HTTP boundary outside the `/agent/ask` scaffold.

@@ -5,7 +5,7 @@ This document defines the planned HTTP contract for the database-agent layer.
 ## Status
 
 - `POST /agent/ask`, the request/response models, and a thin orchestration seam are implemented as a scaffold.
-- The current live behavior is intentionally narrow: stub `ok` and preview envelopes only.
+- The current live behavior is intentionally narrow: deterministic refusals for blocked prompts, a preview stub when `preview_only=true`, and one generic allowed placeholder for all other allowed requests.
 - Real SQL generation, validation, execution, charting, session memory, small-talk handling, and resume-tool routing are still future work behind the existing endpoint.
 - Existing search and resume-matching endpoints remain unchanged in this phase.
 

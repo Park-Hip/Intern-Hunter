@@ -13,6 +13,7 @@ InternHunter is a TopCV-focused job-finder backend that crawls jobs, stores raw 
 - resume upload -> embedding
 - resume matching -> jobs
 - resume match explanations
+- bounded `/agent/ask` guardrail scaffold
 - minimal local API demo
 
 ## Quickstart
@@ -80,6 +81,7 @@ The script checks:
 - `GET /health`
 - `GET /jobs/search` (`mode=criteria` by default, `mode=semantic` available when the Gemini embedding key is configured)
 - `POST /resume/match` returns matched jobs plus `matched_skills`, `unmatched_resume_skills`, and `reason`
+- `POST /agent/ask` returns a typed database-agent envelope with deterministic refusal, preview, and generic allowed placeholder behavior
 
 Examples:
 
