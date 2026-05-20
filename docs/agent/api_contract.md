@@ -6,7 +6,7 @@ This document defines the planned HTTP contract for the database-agent layer.
 
 - `POST /agent/ask`, the request/response models, and a thin orchestration seam are implemented as a scaffold.
 - The current live behavior is intentionally narrow: deterministic refusals for blocked prompts, a preview stub when `preview_only=true`, and one generic allowed placeholder for all other allowed requests.
-- Real SQL generation, validation, execution, charting, session memory, small-talk handling, and resume-tool routing are still future work behind the existing endpoint.
+- Real SQL generation, validation, execution, charting, session memory, and tool routing are still future work behind the existing endpoint.
 - Existing search and resume-matching endpoints remain unchanged in this phase.
 
 ## Purpose
@@ -14,8 +14,18 @@ This document defines the planned HTTP contract for the database-agent layer.
 - Define the internal/demo MVP API contract while implementation is still being built.
 - Keep the public HTTP surface narrow while the database-agent architecture is still being built.
 - Make request shapes, response shapes, refusal behavior, and output guarantees explicit.
+- Keep the public contract stable while the internal runtime is redesigned around a separate agent-native layer.
 - Defer SQL grammar and whitelist rules to `docs/agent/sql_contract.md`.
 - Defer broader security, auth, rate-limit, and audit policy to `docs/agent/security_model.md`.
+
+## Runtime Note
+
+The internal runtime framework is not yet locked in this document.
+
+- `LangGraph` is a leading candidate
+- plain `LangChain` runtime remains a valid option
+
+The HTTP contract should remain stable regardless of which internal runtime framework is chosen after research closure.
 
 ## MVP Scope
 
@@ -77,7 +87,7 @@ If preview, charting, or other tools are implemented internally, they remain imp
 
 ## Endpoint Purpose
 
-`POST /agent/ask` accepts an English question and returns one of the following:
+`POST /agent/ask` accepts an English question and returns one of the following, depending on implementation stage:
 
 - a validated and executed SQL/query result with table output
 - a validated SQL preview without execution
@@ -102,10 +112,6 @@ The endpoint may also include:
 - `session_id: string | null`
 - `user_id: string | null`
 - `preview_only: bool = false`
-- `include_chart: bool = false`
-- `limit: int | null`
-- `include_summary: bool = true`
-- `debug: bool = false`
 
 ### Field Semantics
 
@@ -144,26 +150,12 @@ The endpoint may also include:
   - does not execute SQL
   - returns preview-oriented output
 
-#### `include_chart`
+### Internal Runtime Policy Notes
 
-- Explicit client request to include chart output when possible.
-- The agent may also infer chart intent from the question even if this field is `false`.
-- Inferred chart intent affects tool routing and post-query chart generation only; it does not bypass SQL validation or create a separate execution path.
-
-#### `limit`
-
-- Optional client hint for result size.
-- Not a promise that the same limit will be executed.
-- Final behavior remains subject to SQL validation and limit rules defined in `docs/agent/sql_contract.md`.
-
-#### `include_summary`
-
-- When `true`, the response should include a short natural-language summary when practical.
-
-#### `debug`
-
-- When `true`, the response may expose additional safe debugging fields defined in this contract.
-- Debug output must not expose secrets, stack traces, or internal credentials.
+- The public request contract does not expose chart-selection, summary-selection, debug, or row-limit control flags.
+- The runtime decides whether to produce SQL, table, summary, or chart artifacts.
+- Query row-limit policy is internal runtime configuration loaded from `src/config/settings.yaml`, not a caller-supplied request field.
+- The current typed policy surface includes `default_query_limit` and `max_query_limit` under the `agent` settings block.
 
 ### Example Request
 
@@ -172,11 +164,7 @@ The endpoint may also include:
   "question": "Draw a chart of job count by city.",
   "session_id": "demo-session-123",
   "user_id": "demo-user-123",
-  "preview_only": false,
-  "include_chart": true,
-  "limit": 50,
-  "include_summary": true,
-  "debug": false
+  "preview_only": false
 }
 ```
 
@@ -232,20 +220,10 @@ All successful HTTP responses for valid requests use a stable envelope:
 
 Structured SQL visibility object.
 
-Always include:
-
-- `executed_sql` when execution occurs
-
-Include additionally when `debug=true` or `preview_only=true`:
-
-- `model_generated_sql`
-- `validated_sql`
-- `executed_sql` when available
-
 SQL field rules:
 
 - `model_generated_sql` is the raw SQL candidate produced before validation.
-- `validated_sql` is the SQL after allowed normalization such as default `LIMIT` insertion.
+- `validated_sql` is the SQL after allowed normalization such as default `LIMIT` insertion from internal runtime policy when needed.
 - `executed_sql` is the exact SQL sent to execution.
 - If execution is skipped, `executed_sql` may be `null`.
 - For non-SQL tool responses, all SQL fields may be `null`.
@@ -264,8 +242,8 @@ Rules:
 - `row_count` is the number of rows returned in `rows`.
 - In preview-only responses, `table` should be `null`.
 - In refusal responses, `table` should be `null`.
-- In resume-matching responses, `table` may be used for normalized match rows.
-- In light small-talk responses, `table` should be `null`.
+- In future resume-matching responses, `table` may be used for normalized match rows.
+- In future light small-talk responses, `table` should be `null`.
 
 #### `summary`
 
@@ -315,6 +293,7 @@ Field rules:
 - `trace_id` should always be emitted by the server for request tracing and debugging.
 - `session_id` may echo the caller-provided session value when present.
 - `user_id` may echo the caller-provided value when present.
+- `limit_applied` indicates the runtime or validator applied the internal default query limit policy rather than using an already-bounded SQL shape.
 
 #### `error`
 
@@ -504,12 +483,13 @@ Error object rules:
 
 Use `200 OK` when the request payload is valid and the system returns any of the following:
 
-- normal query results
-- empty query results
-- preview-only results
-- successful resume-matching results
-- light small-talk responses
-- safe refusals
+- the current scaffolded preview response
+- the current scaffolded generic allowed placeholder response
+- the current scaffolded safe refusal response
+- future normal query results
+- future empty query results
+- future successful resume-matching results
+- future light small-talk responses
 
 ### `422 Unprocessable Content`
 
@@ -545,7 +525,7 @@ Examples of refusal-level cases:
 - unsupported question type
 - request to mutate or destroy data
 - request outside MVP `clean_jobs` scope
-- resume-matching request without `user_id`
+- future resume-matching request without `user_id`
 - broad unsupported assistant-style requests outside the bounded tool set
 
 ### Empty Result Behavior
@@ -563,9 +543,7 @@ The endpoint should:
 ## Chart Output Rules
 
 - Chart output is optional in MVP.
-- The endpoint should support both:
-  - explicit chart requests through `include_chart=true`
-  - inferred chart intent from the question
+- The endpoint should support inferred chart intent from the question when the runtime selects a chart tool.
 - The chart contract should remain practical:
   - based on executed and normalized SQL/table results only
   - intended mainly for grouped or clearly chartable tabular results
@@ -607,7 +585,7 @@ The contract does not promise:
 - `clean_jobs` is the only queryable product-facing table in MVP.
 - Resume matching is a guarded equal branch behind the same endpoint and does not create a second public API.
 - Resume matching and chart generation may exist as internal tool paths behind the same endpoint, but they do not create additional public endpoints in this contract.
-- The database agent uses a LangChain-native provider path internally, but that remains an internal implementation detail and is not part of the public HTTP contract.
+- The database agent uses an internal agent-native provider/runtime path, but that remains an internal implementation detail and is not part of the public HTTP contract.
 
 ## Validation And Safety Notes
 
@@ -618,23 +596,25 @@ The contract does not promise:
 
 ## Test Cases For This Contract
 
-The implementation and future tests should validate at least the following behaviors:
+The current scaffolded implementation should validate at least the following behaviors:
+
+- blocked prompts return `200` with `status="refused"` and safe machine-readable error fields
+- `preview_only=true` returns validated SQL, skips execution, and sets `execution_skipped=true`
+- allowed prompts return one generic `status="ok"` placeholder response
+- malformed requests return `422`
+- `trace_id` is always present in metadata
+- `limit_applied` and `execution_skipped` are returned consistently
+
+Once the runtime adds SQL execution and non-SQL tools behind the same endpoint, later implementation and integration tests should validate behaviors such as:
 
 - happy-path English question returns `status="ok"`, executed SQL, table rows, and summary
-- `preview_only=true` returns validated SQL, skips execution, and sets `execution_skipped=true`
-- `debug=true` exposes `model_generated_sql`, `validated_sql`, and `executed_sql` when available
-- explicit `include_chart=true` can return a chart spec
-- chart-intent questions may return a chart spec even without `include_chart=true`
+- chart-intent questions may return a chart spec when the runtime selects a chart tool
 - non-chartable results may return `chart=null` with warnings
 - light small-talk requests may return `status="ok"` with summary text and no SQL execution
 - resume-matching requests with `user_id` can return normalized match rows without SQL execution
 - resume-matching requests without `user_id` are refused safely
-- unsafe or unsupported requests return `200` with `status="refused"` and safe machine-readable error fields
 - empty results return `status="ok"` with empty rows
-- malformed requests return `422`
 - same-session follow-ups may use prior session context through `session_id`
-- `trace_id` is always present in metadata
-- `limit_applied` and `execution_skipped` are returned consistently
 
 ## Versioning Notes
 

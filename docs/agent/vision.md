@@ -17,6 +17,7 @@ The first-shipped MVP identity is:
 - a SQL-first database exploration assistant
 - a job-market analytics assistant over structured `clean_jobs` fields
 - a bounded multi-tool assistant that can choose between SQL querying, result-driven charting, light small-talk handling, and guarded resume matching
+- an agent-native runtime layer that grows tools incrementally behind one endpoint
 
 For the first SQL-contract stage of MVP, the SQL exploration path is intentionally narrow:
 
@@ -46,7 +47,7 @@ The current opportunity is to turn collected jobs into searchable insights, not 
 - Support simple result-driven charts from executed SQL results
 - Support guarded resume matching through the same entrypoint when the request is clearly user-scoped
 - Become a strong portfolio demo of agent + database + charts
-- Route requests to the right bounded tool path instead of forcing every question through one behavior
+- Prove a real bounded agent runtime before expanding domain tools deeply
 
 ## 6. Core User Capabilities
 
@@ -76,7 +77,8 @@ Future capability direction:
 - Return short natural-language summaries
 - Generate chart specs from executed query results
 - Refuse unsafe database operations
-- Route questions through a bounded LangChain ReAct-style loop with explicit tool limits
+- Route questions through a bounded ReAct-style runtime loop with explicit tool limits
+- Keep runtime framework choice behind a research gate: `LangGraph` is a leading candidate, while plain `LangChain` runtime remains a valid option
 - Keep the first ReAct/tool-routing loop tight, with 2-3 tool steps maximum
 - Keep SQL generation as a distinct internal component
 - Keep SQL validation as a hard deterministic boundary outside agent autonomy
@@ -94,7 +96,8 @@ Constraints for MVP:
 - Keep first-stage SQL validation narrow and highly testable
 - Keep public behavior to one `POST /agent/ask` endpoint
 - Keep public input to English natural-language questions only
-- Use a LangChain-native provider path for agent generation/orchestration
+- Use an agent-native provider path for agent generation and orchestration
+- Keep the agent runtime layer separate from ETL/runtime implementation in `src/internhunter/llm/`
 - Use a single provider configuration first and defer fallback-provider logic until later hardening
 - Keep chart generation result-driven from executed SQL/table results even when chart intent is inferred from the question
 - Keep chart generation deterministic-first or hybrid from normalized results rather than creating a second free-form reasoning path
@@ -164,5 +167,6 @@ Resume matching is part of the MVP tool set, but it must stay explicitly bounded
 ## 13. Open Questions
 
 - What replaceable persistent memory backend should back `session_id` during MVP?
-- What concrete LangChain-native model configuration should the agent use first for the ReAct/tool-routing flow?
+- Should the first runtime-framework choice close on `LangGraph` or plain `LangChain` runtime after research?
+- What concrete model configuration should the agent use first for the bounded ReAct/tool-runtime flow?
 - What level of audit and trace logging is required for internal/demo MVP operation beyond the currently approved baseline?

@@ -28,10 +28,6 @@
 - `session_id: str | null = null`
 - `user_id: str | null = null`
 - `preview_only: bool = false`
-- `include_chart: bool = false`
-- `limit: int | null = null`
-- `include_summary: bool = true`
-- `debug: bool = false`
 
 The explicit public request models currently defined in code are `ResumeMatchRequest` in `src/internhunter/api/routes/demo_routes.py` and `AgentAskRequest` in `src/internhunter/api/schemas/agent.py`.
 
@@ -50,6 +46,8 @@ The current `/agent/ask` implementation is intentionally narrow:
 - blocked unsafe or out-of-scope requests return a typed `status="refused"` envelope before branch execution
 - allowed prompts return one generic scaffolded `status="ok"` placeholder response
 - `preview_only=true` still returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
+- SQL/table/summary/chart payloads are optional artifacts that the future runtime may produce; they are not selected through request flags
+- agent query limit policy is internal runtime configuration, not a public request field
 - no live path generates SQL, executes SQL, performs resume matching, or produces charts yet
 
 ## Current Error Behavior

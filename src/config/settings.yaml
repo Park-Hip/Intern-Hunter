@@ -16,6 +16,8 @@ llm:
 agent:
   max_iterations: 5
   memory_limit: 10
+  default_query_limit: 50
+  max_query_limit: 100
 
 crawler:
   rate_limit_rpm: 6

@@ -29,10 +29,6 @@ def _to_request_artifact(request: AgentAskRequest) -> AskRequestArtifact:
         session_id=request.session_id,
         user_id=request.user_id,
         preview_only=request.preview_only,
-        include_chart=request.include_chart,
-        limit=request.limit,
-        include_summary=request.include_summary,
-        debug=request.debug,
     )
 
 

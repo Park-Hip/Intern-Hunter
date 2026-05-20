@@ -12,8 +12,6 @@ def test_agent_ask_endpoint_exists_and_returns_stub_ok():
         json={
             "question": "Show me data scientist jobs in Hanoi.",
             "preview_only": False,
-            "include_summary": True,
-            "include_chart": False,
         },
     )
 
@@ -37,7 +35,18 @@ def test_agent_ask_endpoint_rejects_malformed_payload():
         "/agent/ask",
         json={
             "question": "   ",
-            "limit": 0,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_agent_ask_endpoint_rejects_removed_request_controls():
+    response = client.post(
+        "/agent/ask",
+        json={
+            "question": "Show me data scientist jobs in Hanoi.",
+            "include_chart": True,
         },
     )
 

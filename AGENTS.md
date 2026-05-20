@@ -190,3 +190,8 @@ Verify:
 - no old entrypoint or path is still described as canonical after a structural change
 
 Use the smallest relevant tests plus targeted text searches to verify this.
+
+## Update the paramters and prompts in yaml files:
+- src/config/settings.yaml and src/config/prompts.yaml
+
+## Add docstrings to functions and classes

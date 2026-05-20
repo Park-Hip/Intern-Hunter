@@ -23,10 +23,6 @@ class AgentAskRequest(BaseModel):
     session_id: str | None = None
     user_id: str | None = None
     preview_only: bool = False
-    include_chart: bool = False
-    limit: int | None = Field(default=None, ge=1)
-    include_summary: bool = True
-    debug: bool = False
 
     @field_validator("question")
     @classmethod

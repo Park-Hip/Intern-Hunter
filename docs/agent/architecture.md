@@ -35,6 +35,22 @@ The current code does not yet implement the full runtime described below:
 - Define the main runtime components, boundaries, and request flow for the future agent layer.
 - Provide an implementation map that stays aligned with `docs/agent/vision.md`, `docs/agent/sql_contract.md`, `docs/agent/api_contract.md`, and `docs/agent/data_dictionary.md`.
 - Keep architecture decisions narrow, explicit, and isolated from frozen ETL/crawler areas.
+- Remain an architecture document only, not a roadmap or active implementation sequence.
+
+## Runtime Direction
+
+The current architecture direction is agent-runtime-first rather than SQL-pipeline-first.
+
+The agent layer should:
+
+- live under `src/agents/` as a separate agent-native subsystem
+- keep its own provider/runtime wrapper, prompts, tracing seam, and orchestration classes
+- reuse shared vendor credentials, generic settings loading, logging, and DB/session infrastructure only where helpful
+- avoid using ETL prompt templates, ETL provider client classes, ETL fallback assumptions, or ETL MLflow behavior as the backbone of the agent runtime
+
+The concrete runtime framework remains an explicit research gate.
+
+This document intentionally does not lock a framework choice. The surrounding module seams should stay loose enough that milestone-level research can choose the runtime without a large architectural rewrite.
 
 ## Scope And Non-Goals
 
@@ -120,7 +136,7 @@ It should work with, but not replace, the other agent docs:
 
 ## System Context
 
-InternHunter is currently a modular monolith with public endpoints under `src/internhunter/api/`, storage under `src/internhunter/storage/`, search logic under `src/internhunter/search/`, resume matching under `src/internhunter/resume/`, and LLM provider infrastructure under `src/internhunter/llm/`.
+InternHunter is currently a modular monolith with public endpoints under `src/internhunter/api/`, storage under `src/internhunter/storage/`, search logic under `src/internhunter/search/`, resume matching under `src/internhunter/resume/`, and LLM/provider infrastructure under `src/internhunter/llm/`.
 
 The current FastAPI app mounts a single demo router and exposes health, search, and resume-matching routes. Those existing flows remain intact during the database-agent phase.
 
@@ -128,7 +144,7 @@ The database-agent layer should be added as a new application subsystem that:
 
 - plugs into the existing FastAPI app through a new route module
 - reuses the current database session infrastructure
-- uses a LangChain-native provider path for agent generation/orchestration
+- uses an agent-native runtime/provider path for agent generation and orchestration
 - depends on the existing `clean_jobs` ORM model and schema
 - may call the existing resume-matching capability through a bounded internal tool seam
 - does not change crawler, ETL, or stable search/resume APIs
@@ -139,10 +155,10 @@ At a high level, the future runtime sits between the public API route and the av
 flowchart LR
     Client["Client"] --> API["FastAPI Agent Route"]
     API --> Guardrail["Pre-Agent Guardrail"]
-    Guardrail --> Agent["LangChain ReAct Loop"]
+    Guardrail --> Agent["Bounded ReAct Runtime"]
     Memory["Replaceable Persistent Memory"] --> Agent
-    LLM["Generic Provider Layer"] --> Agent
-    Obs["Observability / Tracing"] --> Agent
+    LLM["Agent-Native Provider Layer"] --> Agent
+    Obs["Langfuse-First Tracing Seam"] --> Agent
     Agent --> Talk["Casual Talk Handling"]
     Agent --> SQLGen["SQL Generation Tool"]
     SQLGen --> Validator["SQL Validation Gate"]
@@ -204,8 +220,8 @@ Recommended boundary split:
   - provides DB sessions and ORM models
   - does not own text-to-SQL behavior
 
-- **LangChain-native model layer**
-  - provides model access for the database agent through a LangChain-native path
+- **Agent-native provider/model layer**
+  - provides model access for the database agent through the chosen runtime/provider path
   - does not own agent orchestration or SQL execution policy
 
 This keeps the route thin, the validator isolated, and the execution path independent from ETL logic.
@@ -222,10 +238,13 @@ Recommended module direction:
   - response mapping
 
 - `src/agents/`
-  - orchestration-level components
+  - agent-native runtime components
   - prompt/context preparation
   - session context handling
-  - tool routing
+  - runtime compile/load entrypoint
+  - provider/runtime wrapper
+  - tracing seam
+  - tool registry and implementations
   - summary and chart coordination
   - refusal and response composition helpers
 
@@ -240,17 +259,26 @@ Suggested responsibility split inside those new areas:
 - `src/agents/service.py`
   - main ask-flow coordinator
 
-- `src/agents/context.py`
-  - schema dictionary and session-context assembly
+- `src/agents/runtime.py`
+  - runtime compile/load entrypoint
+
+- `src/agents/state.py`
+  - agent state model
+
+- `src/agents/provider.py`
+  - agent-native provider wrapper
+
+- `src/agents/prompts.py`
+  - agent system prompts and tool instructions
 
 - `src/agents/memory.py`
-  - session-level memory boundary
+  - replaceable memory interface and backend seam
 
-- `src/agents/react_loop.py`
-  - bounded LangChain ReAct wrapper
+- `src/agents/tracing.py`
+  - Langfuse-first tracing hooks
 
-- `src/agents/tools.py`
-  - bounded tool registry / tool selection helpers
+- `src/agents/tools/`
+  - incremental tool implementations and registry
 
 - `src/agents/summary.py`
   - short answer generation from question plus result context
@@ -269,6 +297,8 @@ Suggested responsibility split inside those new areas:
 
 - `src/agents/resume_tool.py`
   - adapter around the existing resume-matching capability
+
+This module map should remain valid whether the runtime-framework research gate closes on `LangGraph` or plain `LangChain`.
 
 The exact filenames may change later, but the boundary split should remain.
 
@@ -673,7 +703,7 @@ The future agent layer should reuse the existing backend seams where possible.
   - current `user_profiles` ownership boundary for resume-specific `user_id`
 
 - `src/internhunter/llm/`
-  - existing LLM/provider infrastructure that may still supply lower-level model access or shared configuration around the LangChain-native agent path
+  - existing LLM/provider infrastructure that may still supply lower-level model access or shared configuration around the agent-native runtime path
 
 - `src/internhunter/common/logging.py`
   - structured logging path
@@ -692,7 +722,7 @@ The future agent layer should reuse the existing backend seams where possible.
 
 - API should translate HTTP to service calls, not own SQL policy.
 - Storage should own DB sessions and models, not agent orchestration.
-- LangChain-native model access should supply model invocation, not database rules.
+- Agent-native model access should supply model invocation, not database rules.
 - The agent layer should not depend on raw crawl artifacts or ETL-stage evidence structures.
 - The agent layer should not repurpose resume-matching `user_id` as a SQL scope or permission control.
 - SQL/query handling should ignore `user_id`.
@@ -736,8 +766,8 @@ The architecture should reuse the project's current stack where it already fits 
 
 Planned internal orchestration direction:
 
-- The database agent should use a LangChain-native provider path for a bounded ReAct/tool-routing flow.
-- LangChain should remain an internal implementation detail behind the single public endpoint.
+- The database agent should use an agent-native provider path for a bounded ReAct/tool-routing flow.
+- The concrete runtime framework should remain an internal implementation detail behind the single public endpoint.
 - The first MVP should use a single provider configuration and defer fallback-provider logic until later hardening.
 
 Dependency notes:
@@ -843,7 +873,7 @@ The following decisions are still open and should be documented explicitly rathe
 
 - what concrete persistent backend session memory uses in MVP behind a replaceable seam
 - whether a dedicated SQL parsing/AST library will be added
-- what concrete LangChain-native model configuration should be used first after research and A/B testing
+- what concrete model configuration should be used first after runtime-framework research and A/B testing
 - whether summary generation needs more LLM involvement beyond the deterministic-first or hybrid MVP stance
 
 Already resolved for the current MVP planning baseline:

@@ -61,6 +61,13 @@ class CrawlerSettings(BaseModel):
     topcv: TopCVCrawlerSettings = Field(default_factory=TopCVCrawlerSettings)
 
 
+class AgentSettings(BaseModel):
+    max_iterations: int = 5
+    memory_limit: int = 10
+    default_query_limit: int = 50
+    max_query_limit: int = 100
+
+
 class Settings(BaseSettings):
     GEMINI_API_KEY: SecretStr | None = None
     GROQ_API_KEY: SecretStr | None = None
@@ -74,6 +81,7 @@ class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parents[3]
 
     crawler: CrawlerSettings = Field(default_factory=CrawlerSettings)
+    agent: AgentSettings = Field(default_factory=AgentSettings)
     config_yaml: Dict[str, Any] = {}
     prompts_yaml: Dict[str, Any] = {}
 
@@ -117,6 +125,8 @@ def load_settings() -> Settings:
             loaded.config_yaml = config_yaml
             if "crawler" in config_yaml:
                 loaded.crawler = CrawlerSettings(**config_yaml["crawler"])
+            if "agent" in config_yaml:
+                loaded.agent = AgentSettings(**config_yaml["agent"])
 
     prompts_path = loaded.BASE_DIR / "src" / "config" / "prompts.yaml"
     if prompts_path.exists():
@@ -128,4 +138,4 @@ def load_settings() -> Settings:
 
 settings = load_settings()
 
-__all__ = ["CrawlerSettings", "Settings", "TopCVCrawlerSettings", "load_settings", "settings"]
+__all__ = ["AgentSettings", "CrawlerSettings", "Settings", "TopCVCrawlerSettings", "load_settings", "settings"]

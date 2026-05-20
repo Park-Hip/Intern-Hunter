@@ -36,8 +36,6 @@ def test_agent_ask_request_normalizes_optional_ids_and_defaults():
     assert request.question == "Count jobs by city."
     assert request.session_id == "session-1"
     assert request.user_id is None
-    assert request.include_summary is True
-    assert request.include_chart is False
     assert request.preview_only is False
 
 
@@ -49,12 +47,21 @@ def test_agent_ask_request_rejects_invalid_question_and_extra_fields():
         AgentAskRequest(question="hello", unsupported=True)
 
 
-def test_agent_ask_request_rejects_chart_type_hint_and_invalid_limit():
+def test_agent_ask_request_rejects_removed_control_fields():
     with pytest.raises(ValidationError):
         AgentAskRequest(question="hello", chart_type_hint="bar")
 
     with pytest.raises(ValidationError):
-        AgentAskRequest(question="hello", limit=0)
+        AgentAskRequest(question="hello", include_chart=True)
+
+    with pytest.raises(ValidationError):
+        AgentAskRequest(question="hello", include_summary=False)
+
+    with pytest.raises(ValidationError):
+        AgentAskRequest(question="hello", debug=True)
+
+    with pytest.raises(ValidationError):
+        AgentAskRequest(question="hello", limit=10)
 
 
 def test_table_artifact_requires_row_count_match():
@@ -66,7 +73,7 @@ def test_internal_artifacts_validate_and_serialize():
     request_artifact = AskRequestArtifact(
         question=" Show me AI engineer jobs in Hanoi. ",
         session_id=" demo-session ",
-        include_chart=True,
+        preview_only=True,
     )
     table_artifact = TableArtifact(
         columns=["standardized_title", "company"],
@@ -93,6 +100,7 @@ def test_internal_artifacts_validate_and_serialize():
 
     assert request_artifact.question == "Show me AI engineer jobs in Hanoi."
     assert request_artifact.session_id == "demo-session"
+    assert request_artifact.preview_only is True
     assert validated_sql.executed_sql == "SELECT standardized_title FROM clean_jobs LIMIT 50"
     assert table_artifact.row_count == 1
     assert summary_artifact.text == "Found 1 matching role."

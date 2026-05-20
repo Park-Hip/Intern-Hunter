@@ -57,13 +57,15 @@ This docs set is meant to support safe refactoring:
 ## Agent
 
 - [agent/vision.md](./agent/vision.md): product direction for the bounded multi-tool database agent
-- [agent/database_agent_mvp_roadmap.md](./agent/database_agent_mvp_roadmap.md): phased execution roadmap from current state to the bounded multi-tool SQL-first MVP
+- [agent/agent_milestones.md](./agent/agent_milestones.md): active milestone tracker and planning source of truth for the database-agent project
 - [agent/architecture.md](./agent/architecture.md): target runtime boundaries plus the current thin scaffold status
 - [agent/sql_contract.md](./agent/sql_contract.md): future SQL safety and generation contract
 - [agent/data_dictionary.md](./agent/data_dictionary.md): query-facing interpretation of `clean_jobs`
 - [agent/eval_set.md](./agent/eval_set.md): planned evaluation cases
 - [agent/api_contract.md](./agent/api_contract.md): current `/agent/ask` scaffold and target MVP API contract
 - [agent/security_model.md](./agent/security_model.md): planned agent security model
+- [agent/database_agent_wave1_implementation_plan.md](./agent/database_agent_wave1_implementation_plan.md): historical superseded implementation-plan reference
+- [agent/database_agent_mvp_roadmap.md](./agent/database_agent_mvp_roadmap.md): historical superseded roadmap reference
 
 ## Examples
 

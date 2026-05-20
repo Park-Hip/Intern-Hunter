@@ -81,7 +81,7 @@ The script checks:
 - `GET /health`
 - `GET /jobs/search` (`mode=criteria` by default, `mode=semantic` available when the Gemini embedding key is configured)
 - `POST /resume/match` returns matched jobs plus `matched_skills`, `unmatched_resume_skills`, and `reason`
-- `POST /agent/ask` returns a typed database-agent envelope with deterministic refusal, preview, and generic allowed placeholder behavior
+- `POST /agent/ask` returns a typed database-agent envelope with deterministic refusal, preview, and generic allowed placeholder behavior behind a minimal request contract
 
 Examples:
 
@@ -108,7 +108,8 @@ curl -X POST http://127.0.0.1:8000/resume/match `
 - [Setup](docs/getting-started/setup.md)
 - [Current behavior](docs/current-system/current_behavior.md)
 - [API overview](docs/api/overview.md)
-- [Agent planning docs](docs/agent/vision.md)
+- [Agent vision](docs/agent/vision.md)
+- [Agent milestones](docs/agent/agent_milestones.md)
 
 ## Known Limitations
 
