@@ -224,7 +224,7 @@ Initial MVP timeout policy:
 - tool routing and SQL generation: 20 seconds
 - SQL validation: 1 second
 - SQL execution: 5 seconds
-- summary generation: 10 seconds
+- answer generation: 10 seconds
 - chart generation: 5 seconds
 - target end-to-end request budget: 30 seconds
 
@@ -273,7 +273,7 @@ Ownership split:
   - public request/response shape and HTTP behavior
 
 - `docs/agent/architecture.md`
-  - runtime placement of validation, execution, summary, charting, memory, and logging seams
+  - runtime placement of validation, execution, answer generation, charting, memory, and logging seams
 
 - `docs/agent/data_dictionary.md`
   - field semantics and query-facing interpretation of `clean_jobs`

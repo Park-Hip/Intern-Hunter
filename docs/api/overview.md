@@ -37,7 +37,7 @@ The explicit public request models currently defined in code are `ResumeMatchReq
 - `GET /health` returns a status object with `status`, `db`, and `search`
 - `GET /jobs/search` returns `list[dict]`
 - `POST /resume/match` returns `list[dict]`
-- `POST /agent/ask` returns a typed shared envelope with top-level `status`, `question`, `sql`, `table`, `summary`, `chart`, `warnings`, `metadata`, and `error`
+- `POST /agent/ask` returns a typed shared envelope with top-level `status`, `question`, `sql`, `table`, `answer`, `chart`, `warnings`, `metadata`, and `error`
 
 Search and match result rows are repository-backed dictionaries, not dedicated HTTP DTO classes.
 
@@ -49,7 +49,7 @@ The current `/agent/ask` implementation is intentionally narrow:
 - short session memory is intentionally retained and wired through caller-provided `session_id`; it can be reused across API calls that hit the same runtime instance
 - the runtime prompt is loaded from `src/config/prompts.yaml` rather than a separate agent-local prompt file
 - response metadata always includes a `trace_id`; blocked, preview, and allowed requests all use the shared tracing seam, which uses Langfuse when configured and otherwise fails open with a local trace id
-- SQL/table/summary/chart payloads remain optional response artifacts, not request-selected outputs
+- SQL/table/answer/chart payloads remain optional response artifacts, not request-selected outputs
 - agent query limit policy is internal runtime configuration, not a public request field
 - no live path generates SQL, executes SQL, performs resume matching, or produces charts yet
 

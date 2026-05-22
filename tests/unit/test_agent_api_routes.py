@@ -11,7 +11,7 @@ def test_agent_ask_endpoint_exists_and_returns_runtime_backed_ok(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=["Runtime-backed response."],
                 trace_id="runtime-trace-route-1",
             )
@@ -38,7 +38,8 @@ def test_agent_ask_endpoint_exists_and_returns_runtime_backed_ok(monkeypatch):
     assert payload["table"] is None
     assert payload["chart"] is None
     assert payload["error"] is None
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["warnings"] == ["Runtime-backed response."]
     assert payload["metadata"]["trace_id"] == "runtime-trace-route-1"
     assert payload["metadata"]["execution_skipped"] is True
@@ -79,6 +80,8 @@ def test_agent_ask_endpoint_returns_preview_envelope_when_requested():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
+    assert payload["answer"] == "Preview mode is wired. Real SQL preview is not implemented yet."
+    assert "summary" not in payload
     assert payload["sql"]["validated_sql"] == "-- preview stub; no SQL generated yet"
     assert payload["sql"]["executed_sql"] is None
     assert payload["metadata"]["execution_skipped"] is True
@@ -128,11 +131,11 @@ def test_agent_ask_endpoint_refuses_destructive_sql_prompt():
     assert payload["sql"]["executed_sql"] is None
 
 
-def test_agent_ask_endpoint_returns_runtime_backed_summary_for_allowed_request(monkeypatch):
+def test_agent_ask_endpoint_returns_runtime_backed_answer_for_allowed_request(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=[],
                 trace_id="runtime-trace-route-2",
             )
@@ -147,18 +150,19 @@ def test_agent_ask_endpoint_returns_runtime_backed_summary_for_allowed_request(m
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["warnings"] == []
     assert payload["sql"]["executed_sql"] is None
     assert payload["metadata"]["trace_id"] == "runtime-trace-route-2"
     assert payload["metadata"]["execution_skipped"] is True
 
 
-def test_agent_ask_endpoint_returns_runtime_backed_summary_for_help(monkeypatch):
+def test_agent_ask_endpoint_returns_runtime_backed_answer_for_help(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=["I can answer questions about the job database."],
                 trace_id="runtime-trace-route-3",
             )
@@ -173,7 +177,8 @@ def test_agent_ask_endpoint_returns_runtime_backed_summary_for_help(monkeypatch)
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["warnings"] == ["I can answer questions about the job database."]
     assert payload["metadata"]["execution_skipped"] is True
 
@@ -182,7 +187,7 @@ def test_agent_ask_endpoint_allows_resume_like_request_without_user_id(monkeypat
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=[],
                 trace_id="runtime-trace-route-4",
             )
@@ -197,7 +202,8 @@ def test_agent_ask_endpoint_allows_resume_like_request_without_user_id(monkeypat
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["error"] is None
 
 
@@ -205,7 +211,7 @@ def test_agent_ask_endpoint_allows_safe_sql_like_question(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=[],
                 trace_id="runtime-trace-route-5",
             )
@@ -220,5 +226,7 @@ def test_agent_ask_endpoint_allows_safe_sql_like_question(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["error"] is None
     assert payload["metadata"]["execution_skipped"] is True

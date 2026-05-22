@@ -208,11 +208,11 @@ Yes.
 - executor responsibilities are explicit
 - table/result normalization responsibilities are explicit
 
-### Milestone 5: Summary And Chart Output
+### Milestone 5: Answer And Chart Output
 
 **Goal**
 
-Add result-grounded summaries and chart specs after safe SQL execution exists.
+Add result-grounded answers and chart specs after safe SQL execution exists.
 
 **Why it exists**
 
@@ -228,13 +228,13 @@ Yes.
 
 **Questions to close**
 
-- How grounded should summaries be?
+- How grounded should answers be?
 - What chartability rules should exist?
 - What chart contract should be considered in-scope for the milestone?
 
 **Expected outputs**
 
-- summary/chart behavior design
+- answer/chart behavior design
 - milestone-specific coding plan
 
 **Ready for coding plan when...**

@@ -123,7 +123,7 @@ The MVP backend works, but the following limitations are still known:
 13. Global processing can still run without `crawl_run_id` when you want legacy backlog behavior.
 14. Resume match explanations are curated and conservative; they can miss synonyms or Vietnamese phrasing.
 15. Ranking still comes from embeddings; explanations are added after the semantic results are returned.
-16. `/agent/ask` can now return guardrail refusals, preview-stub responses, or runtime-backed allowed `ok` responses with reusable short session memory keyed by `session_id`, but it still does not perform real SQL generation/execution, chart generation, or real resume-tool execution. SQL/table/summary/chart fields remain optional response artifacts, not request-selected outputs.
+16. `/agent/ask` can now return guardrail refusals, preview-stub responses, or runtime-backed allowed `ok` responses with reusable short session memory keyed by `session_id`, but it still does not perform real SQL generation/execution, chart generation, or real resume-tool execution. SQL/table/answer/chart fields remain optional response artifacts, not request-selected outputs.
 
 ## Verification Commands
 

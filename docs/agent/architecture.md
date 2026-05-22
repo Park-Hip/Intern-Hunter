@@ -20,15 +20,17 @@ The current repository includes a guarded Milestone 1 runtime slice:
   - preview stub output when `preview_only=true`
   - runtime-backed allowed responses for other allowed requests
 - `src/agents/runtime.py` builds a LangChain-backed no-tool runtime entrypoint for Milestone 1
-- `src/agents/memory.py` provides short in-process session memory keyed by `session_id`
+- `src/agents/provider.py` is the intentional provider/model boundary for the agent runtime
+- `src/agents/memory.py` intentionally provides short in-process session memory keyed by `session_id`
 - `src/agents/tracing.py` provides a tracing seam with Langfuse-backed tracing when configured and fail-open tracing otherwise
+- runtime prompt text is loaded from `src/config/prompts.yaml`
 
 The current code does not yet implement the full runtime described below:
 
 - no real tool execution routing beyond the no-tool runtime
 - no SQL generation or validation
 - no SQL execution
-- no summary or chart generation
+- no answer post-processing or chart generation
 - no durable memory behavior
 - no live resume-tool invocation behind `/agent/ask`
 
@@ -75,7 +77,7 @@ This document covers the planned runtime architecture for:
 - SQL generation, validation, and read-only execution
 - resume-matching tool invocation
 - result shaping
-- summary generation
+- answer generation
 - chart-spec generation
 - refusal and error shaping seams
 - session-level follow-up context
@@ -102,7 +104,7 @@ The database-agent MVP architecture should satisfy both product and engineering 
 - Let users ask for resume-matching help through the same agent entrypoint when `user_id` is provided.
 - Show generated SQL to the user for SQL-capable requests.
 - Return read-only results as tables.
-- Return short natural-language summaries.
+- Return short natural-language answers.
 - Return optional chart specs for chartable questions.
 - Support simple follow-up questions within a session.
 - Support light small-talk behavior without turning the product into a broad assistant.
@@ -216,7 +218,7 @@ Recommended boundary split:
   - performs bounded ReAct-style tool routing
   - calls SQL generation or other approved tools
   - handles preview and refusal branches
-  - coordinates summary and chart generation
+  - coordinates answer and chart generation
 
 - **Query service layer**
   - validates generated SQL against policy
@@ -257,7 +259,7 @@ Recommended module direction:
   - provider/runtime wrapper
   - tracing seam
   - tool registry and implementations
-  - summary and chart coordination
+  - answer and chart coordination
   - refusal and response composition helpers
 
 - `src/services/query/`
@@ -280,9 +282,6 @@ Suggested responsibility split inside those new areas:
 - `src/agents/provider.py`
   - agent-native provider wrapper
 
-- `src/agents/prompts.py`
-  - agent system prompts and tool instructions
-
 - `src/agents/memory.py`
   - replaceable memory interface and backend seam
 
@@ -292,7 +291,7 @@ Suggested responsibility split inside those new areas:
 - `src/agents/tools/`
   - incremental tool implementations and registry
 
-- `src/agents/summary.py`
+- `src/agents/answer.py`
   - short answer generation from question plus result context
 
 - `src/agents/charting.py`
@@ -474,7 +473,7 @@ Must not:
 - widen SQL table scope
 - become a second public endpoint
 
-### 10. Summary Generator
+### 10. Answer Generator
 
 Consumes:
 
@@ -484,7 +483,7 @@ Consumes:
 
 Produces:
 
-- short user-facing summary
+- short user-facing answer
 
 Must not:
 
@@ -561,7 +560,7 @@ flowchart TD
     H -->|preview_only=true| O["Return preview response"]
     H -->|Validated SQL| I["Execute validated SQL"]
     I --> J["Normalize rows into table"]
-    J --> K["Generate optional summary"]
+    J --> K["Generate optional answer"]
     J --> L["Generate optional chart spec"]
     E -->|Resume tool| M["Invoke resume-matching tool"]
     M --> K
@@ -584,7 +583,7 @@ Step-by-step:
 10. If SQL validation succeeds and execution is allowed, the executor runs only the validated SQL.
 11. Raw rows are normalized into the table shape expected by the API contract.
 12. For resume-matching requests, the orchestration layer invokes the bounded resume tool and normalizes its output.
-13. Summary generation runs when requested or enabled by default.
+13. Answer generation runs when requested or enabled by default.
 14. Chart generation runs only from executed SQL/table results when explicitly requested or when chart intent is inferred and the result is suitable.
 15. The orchestration layer returns a final structured outcome for API response shaping.
 
@@ -598,7 +597,7 @@ Recommended artifact sequence:
    - question
    - preview flag
    - chart options
-   - summary flag
+   - answer flag
    - debug flag
    - session identifier
    - optional user identifier used by user-scoped tools such as resume matching
@@ -638,7 +637,7 @@ Recommended artifact sequence:
    - normalized match rows
    - match metadata
 
-10. **Summary artifact**
+10. **Answer artifact**
    - short natural-language explanation
 
 11. **Chart artifact**
@@ -650,7 +649,7 @@ Recommended artifact sequence:
    - status
    - SQL visibility fields
    - table
-   - summary
+   - answer
    - chart
    - warnings
    - metadata
@@ -753,7 +752,7 @@ Expected internal objects include:
 - SQL-candidate object
 - validation-result object
 - table-result object
-- summary-result object
+- answer-result object
 - chart-result object
 - final response assembly object
 
@@ -806,21 +805,21 @@ Recommended log or trace points:
 - execution started and completed
 - resume-matching tool invoked or skipped
 - result row count
-- summary/chart generation attempted or skipped
+- answer/chart generation attempted or skipped
 - final response status
 
 Operational constraints to note:
 
 - the MVP is a synchronous request/response flow
 - SQL result size is controlled primarily through validator-enforced limits
-- likely latency contributors are SQL generation, query execution, summary generation, and chart generation
+- likely latency contributors are SQL generation, query execution, answer generation, and chart generation
 - caching is not required for MVP
 - rate limiting is deferred
 - the first implementation should use these timeout budgets:
   - tool routing and SQL generation: 20 seconds
   - SQL validation: 1 second
   - SQL execution: 5 seconds
-  - summary generation: 10 seconds
+  - answer generation: 10 seconds
   - chart generation: 5 seconds
   - target end-to-end request budget: 30 seconds
 
@@ -841,7 +840,7 @@ This architecture implies several clean test seams.
 - table formatting
 - resume-tool adapter behavior
 - refusal mapping
-- summary eligibility and shaping
+- answer eligibility and shaping
 - chart suitability and chart-spec generation
 
 ### Integration-Level Seams
@@ -886,7 +885,7 @@ The following decisions are still open and should be documented explicitly rathe
 - what concrete backend should sit behind the replaceable memory seam after Milestone 1
 - whether a dedicated SQL parsing/AST library will be added
 - what concrete model configuration should be used first after runtime-framework research and A/B testing
-- whether summary generation needs more LLM involvement beyond the deterministic-first or hybrid MVP stance
+- whether answer generation needs more LLM involvement beyond the deterministic-first or hybrid MVP stance
 
 Already resolved for the current MVP planning baseline:
 

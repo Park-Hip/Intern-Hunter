@@ -37,7 +37,7 @@ class AgentRuntimeOutput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    summary: str
+    answer: str
     warnings: list[str] = Field(default_factory=list)
     trace_id: str
 

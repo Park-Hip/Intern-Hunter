@@ -7,7 +7,7 @@ This document defines the planned HTTP contract for the database-agent layer.
 - `POST /agent/ask`, the request/response models, and a thin orchestration seam are implemented as a scaffold.
 - The current live behavior is intentionally narrow: deterministic refusals for blocked prompts, a preview stub when `preview_only=true`, and a runtime-backed non-SQL `ok` response for other allowed requests.
 - Real SQL generation, validation, execution, and charting are still future work behind the existing endpoint.
-- Milestone 1 runtime work currently adds only a runtime-backed non-SQL response path with short session memory and tracing seams.
+- Milestone 1 runtime work currently adds only a runtime-backed non-SQL response path with intentionally retained short session memory, YAML-backed runtime prompts, and a small tracing seam.
 - Existing search and resume-matching endpoints remain unchanged in this phase.
 
 ## Purpose
@@ -102,7 +102,7 @@ If preview, charting, or other tools are implemented internally, they remain imp
 
 The endpoint may also include:
 
-- a short natural-language summary
+- a short natural-language answer
 - a Vega-Lite-compatible chart spec
 - warnings and metadata
 
@@ -132,6 +132,7 @@ The endpoint may also include:
 - Session memory is scoped to the session, not to an authenticated user.
 - Milestone 1 scope is short session memory only.
 - The memory layer should remain replaceable.
+- The current runtime prompt is loaded from `src/config/prompts.yaml`.
 - `session_id` is not a substitute for authenticated identity and is distinct from the existing resume-matching `user_id`.
 
 #### `user_id`
@@ -157,8 +158,8 @@ The endpoint may also include:
 
 ### Internal Runtime Policy Notes
 
-- The public request contract does not expose chart-selection, summary-selection, debug, or row-limit control flags.
-- The runtime decides whether to produce SQL, table, summary, or chart artifacts.
+- The public request contract does not expose chart-selection, answer-selection, debug, or row-limit control flags.
+- The runtime decides whether to produce SQL, table, answer, or chart artifacts.
 - Query row-limit policy is internal runtime configuration loaded from `src/config/settings.yaml`, not a caller-supplied request field.
 - The current typed policy surface includes `default_query_limit` and `max_query_limit` under the `agent` settings block.
 
@@ -183,7 +184,7 @@ The public contract assumes the following high-level flow:
 4. If SQL validation fails, return a refusal and do not execute SQL.
 5. If `preview_only=true`, return preview output and do not execute SQL.
 6. Otherwise execute only the validated SQL or invoke the selected non-SQL tool path.
-7. Return table output, summary output, optional chart output, warnings, and metadata.
+7. Return table output, answer output, optional chart output, warnings, and metadata.
 
 Validation must always occur before SQL execution.
 
@@ -199,7 +200,7 @@ All successful HTTP responses for valid requests use a stable envelope:
 - `question`
 - `sql`
 - `table`
-- `summary`
+- `answer`
 - `chart`
 - `warnings`
 - `metadata`
@@ -250,9 +251,9 @@ Rules:
 - In future resume-matching responses, `table` may be used for normalized match rows.
 - In future light small-talk responses, `table` should be `null`.
 
-#### `summary`
+#### `answer`
 
-- Short natural-language explanation or result summary.
+- Short natural-language user-facing answer.
 - Remains part of the main response.
 - No separate explanation endpoint exists in MVP.
 
@@ -342,7 +343,7 @@ Error object rules:
     ],
     "row_count": 1
   },
-  "summary": "Ha Noi has 12 jobs in the current database.",
+  "answer": "Ha Noi has 12 jobs in the current database.",
   "chart": {
     "chart_type": "bar",
     "chart_spec": {}
@@ -371,7 +372,7 @@ Error object rules:
     "executed_sql": null
   },
   "table": null,
-  "summary": "Preview only. SQL was validated and not executed.",
+  "answer": "Preview only. SQL was validated and not executed.",
   "chart": null,
   "warnings": [
     "Execution skipped because preview_only=true."
@@ -399,7 +400,7 @@ Error object rules:
     "executed_sql": null
   },
   "table": null,
-  "summary": "I can only help with safe read-only exploration of clean_jobs in MVP.",
+  "answer": "I can only help with safe read-only exploration of clean_jobs in MVP.",
   "chart": null,
   "warnings": [],
   "metadata": {
@@ -440,7 +441,7 @@ Error object rules:
     ],
     "row_count": 1
   },
-  "summary": "I found 1 strong backend-oriented match for your stored resume.",
+  "answer": "I found 1 strong backend-oriented match for your stored resume.",
   "chart": null,
   "warnings": [],
   "metadata": {
@@ -466,7 +467,7 @@ Error object rules:
     "executed_sql": null
   },
   "table": null,
-  "summary": "I can help you explore clean_jobs with safe read-only questions, show the SQL I used, return tables, generate simple chart specs from results, and route resume-matching requests when user_id is provided.",
+  "answer": "I can help you explore clean_jobs with safe read-only questions, show the SQL I used, return tables, generate simple chart specs from results, and route resume-matching requests when user_id is provided.",
   "chart": null,
   "warnings": [
     "Light conversational handling is intentionally narrow in MVP."
@@ -543,7 +544,7 @@ The endpoint should:
 - set `status="ok"`
 - return `table.rows=[]`
 - return `table.row_count=0`
-- include a short summary or warning when useful
+- include a short answer or warning when useful
 
 ## Chart Output Rules
 
@@ -612,10 +613,10 @@ The current scaffolded implementation should validate at least the following beh
 
 Once the runtime adds SQL execution and non-SQL tools behind the same endpoint, later implementation and integration tests should validate behaviors such as:
 
-- happy-path English question returns `status="ok"`, executed SQL, table rows, and summary
+- happy-path English question returns `status="ok"`, executed SQL, table rows, and answer
 - chart-intent questions may return a chart spec when the runtime selects a chart tool
 - non-chartable results may return `chart=null` with warnings
-- light small-talk requests may return `status="ok"` with summary text and no SQL execution
+- light small-talk requests may return `status="ok"` with answer text and no SQL execution
 - resume-matching requests with `user_id` can return normalized match rows without SQL execution
 - resume-matching requests without `user_id` are refused safely
 - empty results return `status="ok"` with empty rows

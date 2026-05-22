@@ -38,37 +38,37 @@ Core MVP cases:
 
 1. `Show me AI engineer jobs in Hanoi.`
    - expected behavior: role + city filter over `clean_jobs`
-   - expected result type: table + summary
+   - expected result type: table + answer
 
 2. `Count jobs by city.`
    - expected behavior: grouped count query
-   - expected result type: table + summary
+   - expected result type: table + answer
 
 3. `Show jobs requiring Python and SQL.`
    - expected behavior: structured skill filter over approved field(s)
-   - expected result type: table + summary
+   - expected result type: table + answer
 
 4. `What are the latest senior data jobs?`
    - expected behavior: structured filter using title/job level and recency ordering
-   - expected result type: table + summary
+   - expected result type: table + answer
 
 5. `Draw a chart of job count by city.`
    - expected behavior: grouped query plus chart output
-   - expected result type: table + summary + chart spec
+   - expected result type: table + answer + chart spec
 
 6. `Match my resume to backend jobs.`
    - expected behavior: route to resume-matching tool when `user_id` is present
-   - expected result type: normalized match rows + summary
+   - expected result type: normalized match rows + answer
 
 Small-talk cases:
 
 7. `Hello`
    - expected behavior: light conversational handling, no SQL execution
-   - expected result type: summary-style conversational response
+   - expected result type: answer-style conversational response
 
 8. `What can you do?`
    - expected behavior: bounded capability explanation, no SQL execution
-   - expected result type: summary-style conversational response
+   - expected result type: answer-style conversational response
 
 Session follow-up cases:
 
@@ -112,25 +112,25 @@ The SQL path should be evaluated for these behaviors:
 ## Expected Result Type Cases
 
 1. standard filter question
-   - output: table + summary
+   - output: table + answer
 
 2. grouped analytics question
-   - output: table + summary
+   - output: table + answer
 
 3. chart-intent question
-   - output: table + summary + chart spec
+   - output: table + answer + chart spec
 
 4. preview-only request
    - output: SQL artifacts, no table execution
 
 5. resume-matching request
-   - output: normalized match rows + summary
+   - output: normalized match rows + answer
 
 6. light small-talk request
-   - output: summary-style response, no table, no SQL execution
+   - output: answer-style response, no table, no SQL execution
 
 7. valid request with no matches
-   - output: empty table + summary or warning
+   - output: empty table + answer or warning
 
 8. unsafe or unsupported request
    - output: refusal response, no execution
@@ -192,7 +192,7 @@ Minimum MVP resume-tool cases:
 
 Minimum MVP explanation behaviors:
 
-1. successful execution includes a short summary grounded in the result
+1. successful execution includes a short answer grounded in the result
 2. preview-only execution includes a short explanation that execution was skipped
 3. refusal includes a short explanation of why the request is blocked
 4. empty-result success includes a short explanation or warning rather than a silent empty payload

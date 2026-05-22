@@ -94,7 +94,7 @@ class AgentAskResponseBase(BaseModel):
     question: str
     sql: AgentSQLPayload = Field(default_factory=AgentSQLPayload)
     table: TableArtifact | None = None
-    summary: str | None = None
+    answer: str | None = None
     chart: ChartArtifact | None = None
     warnings: list[str] = Field(default_factory=list)
     metadata: AgentResponseMetadata
@@ -108,9 +108,9 @@ class AgentAskResponseBase(BaseModel):
             raise ValueError("question cannot be empty.")
         return normalized
 
-    @field_validator("summary")
+    @field_validator("answer")
     @classmethod
-    def normalize_summary(cls, value: str | None) -> str | None:
+    def normalize_answer(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()

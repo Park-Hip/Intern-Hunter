@@ -35,14 +35,14 @@ def _build_metadata(
 def _build_refused_response(
     request: AgentAskRequest,
     refusal: RefusalArtifact,
-    summary: str,
+    answer: str,
     trace_id: str,
 ) -> AgentAskRefusedResponse:
     """Build the typed refusal envelope returned before runtime execution."""
     return AgentAskRefusedResponse(
         question=request.question,
         sql=AgentSQLPayload(),
-        summary=summary,
+        answer=answer,
         warnings=["Request refused before agent execution."],
         metadata=_build_metadata(request, trace_id=trace_id),
         error=AgentErrorPayload(
@@ -58,7 +58,7 @@ def _build_preview_response(request: AgentAskRequest, trace_id: str) -> AgentAsk
     return AgentAskPreviewResponse(
         question=request.question,
         sql=AgentSQLPayload(validated_sql="-- preview stub; no SQL generated yet"),
-        summary="Preview mode is wired. Real SQL preview is not implemented yet.",
+        answer="Preview mode is wired. Real SQL preview is not implemented yet.",
         warnings=["Stub preview only. No SQL was executed."],
         metadata=_build_metadata(request, trace_id=trace_id),
     )
@@ -94,7 +94,7 @@ def _build_allowed_runtime_response(request: AgentAskRequest) -> AgentAskOkRespo
     return AgentAskOkResponse(
         question=request.question,
         sql=AgentSQLPayload(),
-        summary=runtime_output.summary,
+        answer=runtime_output.answer,
         warnings=runtime_output.warnings,
         metadata=_build_metadata(request, trace_id=runtime_output.trace_id),
     )
@@ -119,7 +119,7 @@ def handle_agent_ask(
         return _build_refused_response(
             request=request,
             refusal=guardrail.refusal,
-            summary="Request refused by the pre-agent guardrail before any branch execution.",
+            answer="Request refused by the pre-agent guardrail before any branch execution.",
             trace_id=trace_id,
         )
 

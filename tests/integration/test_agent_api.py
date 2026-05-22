@@ -64,11 +64,11 @@ def test_agent_api_blocked_request_stops_before_allowed_placeholder(monkeypatch)
     assert payload["sql"]["executed_sql"] is None
 
 
-def test_agent_api_allowed_request_uses_runtime_backed_summary(monkeypatch):
+def test_agent_api_allowed_request_uses_runtime_backed_answer(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=["Runtime-backed response."],
                 trace_id="runtime-trace-integration-1",
             )
@@ -83,7 +83,8 @@ def test_agent_api_allowed_request_uses_runtime_backed_summary(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["warnings"] == ["Runtime-backed response."]
     assert payload["metadata"]["execution_skipped"] is True
     assert payload["metadata"]["trace_id"] == "runtime-trace-integration-1"
@@ -92,11 +93,11 @@ def test_agent_api_allowed_request_uses_runtime_backed_summary(monkeypatch):
     assert payload["chart"] is None
 
 
-def test_agent_api_resume_like_request_without_user_id_returns_runtime_backed_summary(monkeypatch):
+def test_agent_api_resume_like_request_without_user_id_returns_runtime_backed_answer(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=[],
                 trace_id="runtime-trace-integration-2",
             )
@@ -111,7 +112,8 @@ def test_agent_api_resume_like_request_without_user_id_returns_runtime_backed_su
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["error"] is None
     assert payload["metadata"]["execution_skipped"] is True
 
@@ -125,6 +127,8 @@ def test_agent_api_preview_request_returns_preview_placeholder():
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
+    assert payload["answer"] == "Preview mode is wired. Real SQL preview is not implemented yet."
+    assert "summary" not in payload
     assert payload["sql"]["validated_sql"] == "-- preview stub; no SQL generated yet"
     assert payload["sql"]["executed_sql"] is None
     assert payload["metadata"]["execution_skipped"] is True
@@ -156,11 +160,11 @@ def test_agent_api_preview_request_uses_tracing_seam(monkeypatch):
     assert tracer.finish_calls == [("preview-trace-1", "preview")]
 
 
-def test_agent_api_allowed_sql_like_request_returns_runtime_backed_summary(monkeypatch):
+def test_agent_api_allowed_sql_like_request_returns_runtime_backed_answer(monkeypatch):
     class FakeRuntime:
         def invoke(self, payload):
             return agent_service.AgentRuntimeOutput(
-                summary="I can help you explore the job database safely.",
+                answer="I can help you explore the job database safely.",
                 warnings=[],
                 trace_id="runtime-trace-integration-3",
             )
@@ -175,7 +179,8 @@ def test_agent_api_allowed_sql_like_request_returns_runtime_backed_summary(monke
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["metadata"]["execution_skipped"] is True
     assert payload["sql"]["executed_sql"] is None
     assert payload["error"] is None
@@ -194,14 +199,14 @@ def test_agent_api_reuses_short_memory_with_same_session_id(monkeypatch):
             previous_questions = [content for role, content in session_history if role == "user"]
 
             if previous_questions:
-                summary = f"Previously you asked: {previous_questions[-1]}"
+                answer = f"Previously you asked: {previous_questions[-1]}"
             else:
-                summary = f"Replying to: {payload.question}"
+                answer = f"Replying to: {payload.question}"
 
             session_history.append(("user", payload.question))
-            session_history.append(("assistant", summary))
+            session_history.append(("assistant", answer))
             return agent_service.AgentRuntimeOutput(
-                summary=summary,
+                answer=answer,
                 warnings=[],
                 trace_id=f"trace-{len(previous_questions) + 1}",
             )
@@ -220,6 +225,6 @@ def test_agent_api_reuses_short_memory_with_same_session_id(monkeypatch):
     assert first.status_code == 200
     assert second.status_code == 200
     assert build_count["value"] == 1
-    assert first.json()["summary"] == "Replying to: hello"
+    assert first.json()["answer"] == "Replying to: hello"
     assert second.json()["metadata"]["session_id"] == "session-a"
-    assert second.json()["summary"] == "Previously you asked: hello"
+    assert second.json()["answer"] == "Previously you asked: hello"

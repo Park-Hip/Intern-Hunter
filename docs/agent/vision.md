@@ -34,7 +34,7 @@ For the first SQL-contract stage of MVP, the SQL exploration path is intentional
 
 ## 4. Problem Statement
 
-Job seekers should not need to know the database structure or write SQL to explore the job dataset. They need a safe way to move from natural-language questions to reliable tables, summaries, and simple chart-ready outputs without being exposed to raw SQL interfaces or unstable schema details.
+Job seekers should not need to know the database structure or write SQL to explore the job dataset. They need a safe way to move from natural-language questions to reliable tables, answers, and simple chart-ready outputs without being exposed to raw SQL interfaces or unstable schema details.
 
 The current opportunity is to turn collected jobs into searchable insights, not just records. The MVP should help users move quickly from questions to answers while staying within a very narrow and testable SQL safety boundary.
 
@@ -54,7 +54,7 @@ The current opportunity is to turn collected jobs into searchable insights, not 
 - Ask English questions about the job database
 - See the SQL the agent generated for SQL-capable requests
 - Receive read-only query results as tables
-- Receive short natural-language summaries of results
+- Receive short natural-language answers about results
 - Request simple chart or graph specs from executed query results
 - Explore job-market patterns such as counts, common skills, and filtered job groups
 - Use resume matching through the same agent entrypoint when the request is clearly user-scoped and `user_id` is available
@@ -74,7 +74,7 @@ Future capability direction:
 - Show generated SQL to the user
 - Restrict SQL filtering to approved structured fields
 - Return tables
-- Return short natural-language summaries
+- Return short natural-language answers
 - Generate chart specs from executed query results
 - Refuse unsafe database operations
 - Route questions through a bounded ReAct-style runtime loop with explicit tool limits
@@ -101,7 +101,7 @@ Constraints for MVP:
 - Use a single provider configuration first and defer fallback-provider logic until later hardening
 - Keep chart generation result-driven from executed SQL/table results even when chart intent is inferred from the question
 - Keep chart generation deterministic-first or hybrid from normalized results rather than creating a second free-form reasoning path
-- Keep summary generation grounded in executed results, using deterministic-first or hybrid behavior rather than unconstrained answer synthesis
+- Keep answer generation grounded in executed results, using deterministic-first or hybrid behavior rather than unconstrained answer synthesis
 - Keep session memory persistent across app restarts, but leave the concrete backend replaceable; `Mem0` is only a current candidate
 - Keep resume-matching `user_id` handling separate from SQL table scope and SQL permissions
 - Keep existing resume matching storage and API boundaries intact even if the agent can call the same underlying capability

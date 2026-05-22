@@ -42,11 +42,11 @@ class AgentRuntime:
             invocation_payload["config"] = invocation_config
 
         response = self.agent.invoke(invocation_payload)
-        summary = _extract_last_assistant_message(response)
-        self._record_memory(payload, summary)
+        answer = _extract_last_assistant_message(response)
+        self._record_memory(payload, answer)
         self.tracer.finish_trace(trace_id, "ok")
         return AgentRuntimeOutput(
-            summary=summary,
+            answer=answer,
             warnings=[],
             trace_id=trace_id,
         )
@@ -59,12 +59,12 @@ class AgentRuntime:
         messages.append({"role": "user", "content": payload.question})
         return messages
 
-    def _record_memory(self, payload: AgentRuntimeInput, summary: str) -> None:
+    def _record_memory(self, payload: AgentRuntimeInput, answer: str) -> None:
         """Persist the latest exchange when the request belongs to a session."""
         if payload.session_id is None:
             return
         self.memory.append(payload.session_id, "user", payload.question)
-        self.memory.append(payload.session_id, "assistant", summary)
+        self.memory.append(payload.session_id, "assistant", answer)
 
 
 def _extract_last_assistant_message(response: dict[str, Any]) -> str:

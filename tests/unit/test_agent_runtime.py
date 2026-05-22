@@ -127,7 +127,7 @@ def test_agent_runtime_invoke_returns_last_assistant_message() -> None:
 
     result = runtime.invoke(AgentRuntimeInput(question="Hello"))
 
-    assert result.summary == "I can help you explore the job database safely."
+    assert result.answer == "I can help you explore the job database safely."
     assert result.warnings == []
     assert result.trace_id
     assert graph.calls == [
@@ -154,7 +154,7 @@ def test_agent_runtime_invoke_threads_memory_and_tracing() -> None:
 
     result = runtime.invoke(AgentRuntimeInput(question="Hello", session_id="session-1"))
 
-    assert result.summary == "I can help you explore the job database safely."
+    assert result.answer == "I can help you explore the job database safely."
     assert result.trace_id == "trace-123"
     assert memory.session_ids == ["session-1"]
     assert memory.appended == [

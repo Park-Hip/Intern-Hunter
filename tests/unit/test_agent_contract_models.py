@@ -97,7 +97,7 @@ def test_preview_response_serialization():
             validated_sql="SELECT standardized_title FROM clean_jobs LIMIT 50",
             executed_sql=None,
         ),
-        summary="Preview only. SQL was validated and not executed.",
+        answer="Preview only. SQL was validated and not executed.",
         metadata=AgentResponseMetadata(
             limit_applied=True,
             execution_skipped=True,
@@ -111,7 +111,8 @@ def test_preview_response_serialization():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Preview only. SQL was validated and not executed."
+    assert payload["answer"] == "Preview only. SQL was validated and not executed."
+    assert "summary" not in payload
     assert payload["sql"]["validated_sql"] == "SELECT standardized_title FROM clean_jobs LIMIT 50"
     assert payload["sql"]["executed_sql"] is None
     assert payload["table"] is None
@@ -147,7 +148,7 @@ def test_refused_response_serialization():
     response = AgentAskRefusedResponse(
         question="Delete all jobs from the database.",
         sql=AgentSQLPayload(),
-        summary="I can only help with safe read-only exploration of clean_jobs in MVP.",
+        answer="I can only help with safe read-only exploration of clean_jobs in MVP.",
         metadata=AgentResponseMetadata(
             limit_applied=False,
             execution_skipped=True,
@@ -163,7 +164,8 @@ def test_refused_response_serialization():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "refused"
-    assert payload["summary"] == "I can only help with safe read-only exploration of clean_jobs in MVP."
+    assert payload["answer"] == "I can only help with safe read-only exploration of clean_jobs in MVP."
+    assert "summary" not in payload
     assert payload["error"]["code"] == "unsafe_sql"
     assert payload["error"]["category"] == "disallowed_statement"
     assert payload["metadata"]["trace_id"] == "trace-refused-1"
@@ -207,7 +209,7 @@ def test_ok_response_serialization_supports_sql_and_table_payloads():
             rows=[{"cities": "Ha Noi", "job_count": 12}],
             row_count=1,
         ),
-        summary="Ha Noi has 12 jobs in the current database.",
+        answer="Ha Noi has 12 jobs in the current database.",
         chart=ChartArtifact(chart_type="bar", chart_spec={"mark": "bar", "encoding": {}}),
         metadata=AgentResponseMetadata(
             limit_applied=True,
@@ -221,7 +223,8 @@ def test_ok_response_serialization_supports_sql_and_table_payloads():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "ok"
-    assert payload["summary"] == "Ha Noi has 12 jobs in the current database."
+    assert payload["answer"] == "Ha Noi has 12 jobs in the current database."
+    assert "summary" not in payload
     assert payload["sql"]["executed_sql"] == "SELECT cities, COUNT(*) AS job_count FROM clean_jobs GROUP BY cities LIMIT 100"
     assert payload["table"]["columns"] == ["cities", "job_count"]
     assert payload["metadata"]["user_id"] == "demo-user-123"
@@ -231,7 +234,7 @@ def test_ok_response_allows_runtime_backed_non_sql_message():
     response = AgentAskOkResponse(
         question="What can you do?",
         sql=AgentSQLPayload(),
-        summary="I can help you explore the job database safely.",
+        answer="I can help you explore the job database safely.",
         metadata=AgentResponseMetadata(
             limit_applied=False,
             execution_skipped=True,
@@ -245,7 +248,8 @@ def test_ok_response_allows_runtime_backed_non_sql_message():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "ok"
-    assert payload["summary"] == "I can help you explore the job database safely."
+    assert payload["answer"] == "I can help you explore the job database safely."
+    assert "summary" not in payload
     assert payload["sql"]["executed_sql"] is None
     assert payload["metadata"]["trace_id"] == "trace-runtime-1"
 

@@ -167,7 +167,7 @@ The table is less suitable for:
 - Expected type / shape: float or null
 - Example values: `0`, `1`, `2`, `3`
 - Reliability label: medium
-- Agent usage: optional filtering and summary
+- Agent usage: optional filtering and answer support
 - Query guidance: usable for simple filters, but the agent should mention uncertainty if interpreting it too precisely
 
 ### `english_requirement`
@@ -176,7 +176,7 @@ The table is less suitable for:
 - Expected type / shape: string or null
 - Example values: `TOEIC 600`, `Fluent`, `Good English communication`
 - Reliability label: medium
-- Agent usage: display, filtering, and limited summaries
+- Agent usage: display, filtering, and limited answer support
 - Query guidance: use as a text-based requirement field, not as a strongly normalized analytic dimension
 
 ### `domain_knowledge`
@@ -185,8 +185,8 @@ The table is less suitable for:
 - Expected type / shape: JSON array of strings
 - Example values: `["Banking"]`, `["NLP", "LLM", "Computer Vision"]`
 - Reliability label: medium
-- Agent usage: thematic filtering and qualitative summaries
-- Query guidance: useful for domain-oriented exploration, filtering, and qualitative summaries, but do not use it as a grouped/chart dimension in MVP
+- Agent usage: thematic filtering and qualitative answer support
+- Query guidance: useful for domain-oriented exploration, filtering, and qualitative answers, but do not use it as a grouped/chart dimension in MVP
 
 ### `is_internship`
 
