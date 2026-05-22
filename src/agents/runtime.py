@@ -5,10 +5,10 @@ from typing import Any, Protocol
 from langchain.agents import create_agent
 
 from src.agents.memory import AgentMemoryMessage, AgentMemoryStore
-from src.agents.prompts import build_agent_system_prompt
 from src.agents.provider import AgentProvider
 from src.agents.state import AgentRuntimeInput, AgentRuntimeOutput
 from src.agents.tracing import AgentTracer, build_agent_tracer
+from src.internhunter.config.settings import settings
 
 
 class AgentGraph(Protocol):
@@ -125,6 +125,20 @@ def build_agent_runtime(
     agent = agent_factory(
         model=model,
         tools=[],
-        system_prompt=build_agent_system_prompt(),
+        system_prompt=_load_agent_system_prompt(),
     )
     return AgentRuntime(agent=agent, memory=runtime_memory, tracer=tracer)
+
+
+def _load_agent_system_prompt() -> str:
+    """Load the runtime system prompt from YAML-backed settings."""
+    prompt = settings.get_prompt("agent_runtime_system") or settings.get_prompt("agent_system")
+    if prompt.strip():
+        return prompt
+
+    return (
+        "You are the InternHunter database agent runtime. "
+        "You are in Milestone 1 with no tools available. "
+        "Stay within the job-database assistant scope, answer briefly, "
+        "and never claim to execute SQL or inspect live database results."
+    )

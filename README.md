@@ -83,7 +83,7 @@ The script checks:
 - `GET /health`
 - `GET /jobs/search` (`mode=criteria` by default, `mode=semantic` available when the Gemini embedding key is configured)
 - `POST /resume/match` returns matched jobs plus `matched_skills`, `unmatched_resume_skills`, and `reason`
-- `POST /agent/ask` returns a typed database-agent envelope with deterministic guardrail refusals, a preview stub path, and a runtime-backed allowed path with short session memory and request tracing metadata when the configured local Ollama model is responsive
+- `POST /agent/ask` returns a typed database-agent envelope with deterministic guardrail refusals, a preview stub path, and a runtime-backed allowed path with short session memory, YAML-backed runtime prompts, and request tracing metadata when the configured local Ollama model is responsive
 
 Examples:
 

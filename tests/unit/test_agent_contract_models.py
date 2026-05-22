@@ -5,15 +5,12 @@ from pydantic import ValidationError
 
 import src.agents as agent_types_module
 from src.agents.types import (
-    AskRequestArtifact,
     ChartArtifact,
     GuardrailDecision,
     RefusalArtifact,
     RefusalCategory,
     RefusalCode,
-    SummaryArtifact,
     TableArtifact,
-    ValidatedSqlArtifact,
 )
 from src.internhunter.api.schemas.agent import (
     AgentAskOkResponse,
@@ -70,26 +67,14 @@ def test_table_artifact_requires_row_count_match():
 
 
 def test_internal_artifacts_validate_and_serialize():
-    request_artifact = AskRequestArtifact(
-        question=" Show me AI engineer jobs in Hanoi. ",
-        session_id=" demo-session ",
-        preview_only=True,
-    )
     table_artifact = TableArtifact(
         columns=["standardized_title", "company"],
         rows=[{"standardized_title": "AI Engineer", "company": "TopCV"}],
         row_count=1,
     )
-    summary_artifact = SummaryArtifact(text=" Found 1 matching role. ")
     chart_artifact = ChartArtifact(
         chart_type="bar",
         chart_spec={"mark": "bar", "encoding": {}},
-    )
-    validated_sql = ValidatedSqlArtifact(
-        model_generated_sql="SELECT standardized_title FROM clean_jobs",
-        validated_sql="SELECT standardized_title FROM clean_jobs LIMIT 50",
-        executed_sql="SELECT standardized_title FROM clean_jobs LIMIT 50",
-        limit_applied=True,
     )
     refusal_artifact = RefusalArtifact(
         code=RefusalCode.UNSAFE_SQL,
@@ -98,12 +83,7 @@ def test_internal_artifacts_validate_and_serialize():
     )
     guardrail = GuardrailDecision(allowed=True)
 
-    assert request_artifact.question == "Show me AI engineer jobs in Hanoi."
-    assert request_artifact.session_id == "demo-session"
-    assert request_artifact.preview_only is True
-    assert validated_sql.executed_sql == "SELECT standardized_title FROM clean_jobs LIMIT 50"
     assert table_artifact.row_count == 1
-    assert summary_artifact.text == "Found 1 matching role."
     assert chart_artifact.chart_type == "bar"
     assert refusal_artifact.message == "blocked"
     assert guardrail.allowed is True
@@ -131,6 +111,7 @@ def test_preview_response_serialization():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "ok"
+    assert payload["summary"] == "Preview only. SQL was validated and not executed."
     assert payload["sql"]["validated_sql"] == "SELECT standardized_title FROM clean_jobs LIMIT 50"
     assert payload["sql"]["executed_sql"] is None
     assert payload["table"] is None
@@ -182,6 +163,7 @@ def test_refused_response_serialization():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "refused"
+    assert payload["summary"] == "I can only help with safe read-only exploration of clean_jobs in MVP."
     assert payload["error"]["code"] == "unsafe_sql"
     assert payload["error"]["category"] == "disallowed_statement"
     assert payload["metadata"]["trace_id"] == "trace-refused-1"
@@ -239,6 +221,7 @@ def test_ok_response_serialization_supports_sql_and_table_payloads():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "ok"
+    assert payload["summary"] == "Ha Noi has 12 jobs in the current database."
     assert payload["sql"]["executed_sql"] == "SELECT cities, COUNT(*) AS job_count FROM clean_jobs GROUP BY cities LIMIT 100"
     assert payload["table"]["columns"] == ["cities", "job_count"]
     assert payload["metadata"]["user_id"] == "demo-user-123"
@@ -262,18 +245,15 @@ def test_ok_response_allows_runtime_backed_non_sql_message():
     payload = response.model_dump(mode="json")
 
     assert payload["status"] == "ok"
+    assert payload["summary"] == "I can help you explore the job database safely."
     assert payload["sql"]["executed_sql"] is None
     assert payload["metadata"]["trace_id"] == "trace-runtime-1"
 
 
 def test_internal_types_module_exposes_only_minimal_phase_one_baseline():
-    assert hasattr(agent_types_module, "AskRequestArtifact")
-    assert hasattr(agent_types_module, "SqlCandidateArtifact")
-    assert hasattr(agent_types_module, "ValidatedSqlArtifact")
     assert hasattr(agent_types_module, "TableArtifact")
     assert hasattr(agent_types_module, "RefusalArtifact")
     assert hasattr(agent_types_module, "ChartArtifact")
-    assert hasattr(agent_types_module, "SummaryArtifact")
     assert hasattr(agent_types_module, "GuardrailDecision")
     assert not hasattr(agent_types_module, "AgentBranch")
     assert not hasattr(agent_types_module, "RouteDecision")

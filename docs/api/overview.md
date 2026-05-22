@@ -46,8 +46,9 @@ The current `/agent/ask` implementation is intentionally narrow:
 - blocked unsafe or out-of-scope requests return a typed `status="refused"` envelope before runtime execution
 - allowed prompts now pass through a real Milestone 1 runtime path with no tools enabled; successful live responses depend on the configured local runtime provider being reachable
 - `preview_only=true` still returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
-- short session memory is wired through caller-provided `session_id` and can be reused across API calls that hit the same runtime instance
-- response metadata always includes a `trace_id`; tracing uses Langfuse when configured and otherwise fails open with a local trace id
+- short session memory is intentionally retained and wired through caller-provided `session_id`; it can be reused across API calls that hit the same runtime instance
+- the runtime prompt is loaded from `src/config/prompts.yaml` rather than a separate agent-local prompt file
+- response metadata always includes a `trace_id`; blocked, preview, and allowed requests all use the shared tracing seam, which uses Langfuse when configured and otherwise fails open with a local trace id
 - SQL/table/summary/chart payloads remain optional response artifacts, not request-selected outputs
 - agent query limit policy is internal runtime configuration, not a public request field
 - no live path generates SQL, executes SQL, performs resume matching, or produces charts yet

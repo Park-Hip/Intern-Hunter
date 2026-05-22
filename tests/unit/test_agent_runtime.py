@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.agents.state import AgentRuntimeInput
+from src.internhunter.config.settings import settings
 
 
 class _FakeAgentGraph:
@@ -24,6 +25,17 @@ class _FakeProvider:
     def build_model(self) -> str:
         """Return a placeholder model handle for the fake graph."""
         return "fake-model"
+
+
+class _RecordingAgentFactory:
+    """Test helper that records the arguments used to build the runtime graph."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def __call__(self, **kwargs: Any) -> _FakeAgentGraph:
+        self.calls.append(kwargs)
+        return _FakeAgentGraph({"messages": [{"role": "assistant", "content": "Hello"}]})
 
 
 class _FakeMemory:
@@ -79,6 +91,26 @@ def test_build_agent_runtime_returns_runtime_object() -> None:
     assert hasattr(runtime, "invoke")
 
 
+def test_build_agent_runtime_loads_system_prompt_from_yaml(monkeypatch) -> None:
+    """The runtime should use the YAML-backed agent prompt rather than a local prompt module."""
+    from src.agents.runtime import build_agent_runtime
+
+    factory = _RecordingAgentFactory()
+    original_prompts = settings.prompts_yaml
+    monkeypatch.setattr(
+        settings,
+        "prompts_yaml",
+        {"prompts": {"agent_runtime_system": "YAML runtime prompt for tests."}},
+    )
+
+    try:
+        build_agent_runtime(provider=_FakeProvider(), agent_factory=factory)
+    finally:
+        monkeypatch.setattr(settings, "prompts_yaml", original_prompts)
+
+    assert factory.calls[0]["system_prompt"] == "YAML runtime prompt for tests."
+
+
 def test_agent_runtime_invoke_returns_last_assistant_message() -> None:
     """Runtime invocation should map graph output into the typed result."""
     from src.agents.runtime import AgentRuntime
@@ -122,6 +154,7 @@ def test_agent_runtime_invoke_threads_memory_and_tracing() -> None:
 
     result = runtime.invoke(AgentRuntimeInput(question="Hello", session_id="session-1"))
 
+    assert result.summary == "I can help you explore the job database safely."
     assert result.trace_id == "trace-123"
     assert memory.session_ids == ["session-1"]
     assert memory.appended == [

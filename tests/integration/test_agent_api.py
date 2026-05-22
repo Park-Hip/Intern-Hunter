@@ -18,6 +18,32 @@ def test_agent_api_returns_refusal_envelope_for_blocked_request():
     assert payload["status"] == "refused"
     assert payload["error"]["category"] == "prompt_injection"
     assert payload["metadata"]["execution_skipped"] is True
+    assert payload["metadata"]["trace_id"]
+
+
+def test_agent_api_blocked_request_uses_tracing_seam(monkeypatch):
+    class FakeTracer:
+        def __init__(self) -> None:
+            self.finish_calls: list[tuple[str, str]] = []
+
+        def start_trace(self, question: str) -> str:
+            return "blocked-trace-1"
+
+        def finish_trace(self, trace_id: str, status: str) -> None:
+            self.finish_calls.append((trace_id, status))
+
+    tracer = FakeTracer()
+    monkeypatch.setattr(agent_service, "build_agent_tracer", lambda: tracer)
+
+    response = client.post(
+        "/agent/ask",
+        json={"question": "Drop the clean_jobs table."},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metadata"]["trace_id"] == "blocked-trace-1"
+    assert tracer.finish_calls == [("blocked-trace-1", "refused")]
 
 
 def test_agent_api_blocked_request_stops_before_allowed_placeholder(monkeypatch):
@@ -102,6 +128,32 @@ def test_agent_api_preview_request_returns_preview_placeholder():
     assert payload["sql"]["validated_sql"] == "-- preview stub; no SQL generated yet"
     assert payload["sql"]["executed_sql"] is None
     assert payload["metadata"]["execution_skipped"] is True
+    assert payload["metadata"]["trace_id"]
+
+
+def test_agent_api_preview_request_uses_tracing_seam(monkeypatch):
+    class FakeTracer:
+        def __init__(self) -> None:
+            self.finish_calls: list[tuple[str, str]] = []
+
+        def start_trace(self, question: str) -> str:
+            return "preview-trace-1"
+
+        def finish_trace(self, trace_id: str, status: str) -> None:
+            self.finish_calls.append((trace_id, status))
+
+    tracer = FakeTracer()
+    monkeypatch.setattr(agent_service, "build_agent_tracer", lambda: tracer)
+
+    response = client.post(
+        "/agent/ask",
+        json={"question": "Preview jobs by city.", "preview_only": True},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metadata"]["trace_id"] == "preview-trace-1"
+    assert tracer.finish_calls == [("preview-trace-1", "preview")]
 
 
 def test_agent_api_allowed_sql_like_request_returns_runtime_backed_summary(monkeypatch):

@@ -3,7 +3,8 @@ from __future__ import annotations
 from src.agents.guardrail import screen_question
 from src.agents.runtime import build_agent_runtime
 from src.agents.state import AgentRuntimeInput, AgentRuntimeOutput
-from src.agents.types import AskRequestArtifact, RefusalArtifact
+from src.agents.tracing import build_agent_tracer
+from src.agents.types import RefusalArtifact
 from src.internhunter.api.schemas.agent import (
     AgentAskRefusedResponse,
     AgentAskOkResponse,
@@ -20,7 +21,7 @@ _RUNTIME_FACTORY: object | None = None
 
 def _build_metadata(
     request: AgentAskRequest,
-    trace_id: str = "stub-trace-id",
+    trace_id: str,
 ) -> AgentResponseMetadata:
     """Build response metadata while preserving the current public API shape."""
     return AgentResponseMetadata(
@@ -31,21 +32,11 @@ def _build_metadata(
         user_id=request.user_id,
     )
 
-
-def _to_request_artifact(request: AgentAskRequest) -> AskRequestArtifact:
-    """Convert the HTTP request into the internal guardrail input artifact."""
-    return AskRequestArtifact(
-        question=request.question,
-        session_id=request.session_id,
-        user_id=request.user_id,
-        preview_only=request.preview_only,
-    )
-
-
 def _build_refused_response(
     request: AgentAskRequest,
     refusal: RefusalArtifact,
     summary: str,
+    trace_id: str,
 ) -> AgentAskRefusedResponse:
     """Build the typed refusal envelope returned before runtime execution."""
     return AgentAskRefusedResponse(
@@ -53,7 +44,7 @@ def _build_refused_response(
         sql=AgentSQLPayload(),
         summary=summary,
         warnings=["Request refused before agent execution."],
-        metadata=_build_metadata(request),
+        metadata=_build_metadata(request, trace_id=trace_id),
         error=AgentErrorPayload(
             code=refusal.code,
             category=refusal.category,
@@ -62,14 +53,14 @@ def _build_refused_response(
     )
 
 
-def _build_preview_response(request: AgentAskRequest) -> AgentAskPreviewResponse:
+def _build_preview_response(request: AgentAskRequest, trace_id: str) -> AgentAskPreviewResponse:
     """Return the current preview-only stub without invoking the runtime."""
     return AgentAskPreviewResponse(
         question=request.question,
         sql=AgentSQLPayload(validated_sql="-- preview stub; no SQL generated yet"),
         summary="Preview mode is wired. Real SQL preview is not implemented yet.",
         warnings=["Stub preview only. No SQL was executed."],
-        metadata=_build_metadata(request),
+        metadata=_build_metadata(request, trace_id=trace_id),
     )
 
 
@@ -109,21 +100,31 @@ def _build_allowed_runtime_response(request: AgentAskRequest) -> AgentAskOkRespo
     )
 
 
+def _build_request_trace_id(question: str, status: str) -> str:
+    """Create a request trace id for non-runtime branches using the shared tracing seam."""
+    tracer = build_agent_tracer()
+    trace_id = tracer.start_trace(question)
+    tracer.finish_trace(trace_id, status)
+    return trace_id
+
+
 def handle_agent_ask(
     request: AgentAskRequest,
 ) -> AgentAskOkResponse | AgentAskPreviewResponse | AgentAskRefusedResponse:
     """Handle the typed `/agent/ask` workflow with guardrail-first branching."""
-    artifact = _to_request_artifact(request)
-    guardrail = screen_question(artifact.question)
+    guardrail = screen_question(request.question)
 
     if not guardrail.allowed:
+        trace_id = _build_request_trace_id(request.question, "refused")
         return _build_refused_response(
             request=request,
             refusal=guardrail.refusal,
             summary="Request refused by the pre-agent guardrail before any branch execution.",
+            trace_id=trace_id,
         )
 
     if request.preview_only:
-        return _build_preview_response(request)
+        trace_id = _build_request_trace_id(request.question, "preview")
+        return _build_preview_response(request, trace_id=trace_id)
 
     return _build_allowed_runtime_response(request)

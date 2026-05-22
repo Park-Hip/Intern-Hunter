@@ -51,20 +51,6 @@ class TableArtifact(BaseModel):
         return self
 
 
-class SummaryArtifact(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    text: str
-
-    @field_validator("text")
-    @classmethod
-    def validate_text(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("summary text cannot be empty.")
-        return normalized
-
-
 class ChartArtifact(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -130,67 +116,3 @@ class GuardrailDecision(BaseModel):
         return self
 
 
-class AskRequestArtifact(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    question: str
-    session_id: str | None = None
-    user_id: str | None = None
-    preview_only: bool = False
-
-    @field_validator("question")
-    @classmethod
-    def validate_question(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("question cannot be empty.")
-        return normalized
-
-    @field_validator("session_id", "user_id")
-    @classmethod
-    def normalize_optional_ids(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        normalized = value.strip()
-        return normalized or None
-
-
-class SqlCandidateArtifact(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    question: str
-    model_generated_sql: str
-
-    @field_validator("question", "model_generated_sql")
-    @classmethod
-    def validate_non_empty_text(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("text fields cannot be empty.")
-        return normalized
-
-
-class ValidatedSqlArtifact(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    validated_sql: str
-    model_generated_sql: str | None = None
-    executed_sql: str | None = None
-    limit_applied: bool = False
-    execution_skipped: bool = False
-
-    @field_validator("validated_sql")
-    @classmethod
-    def validate_validated_sql(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("validated_sql cannot be empty.")
-        return normalized
-
-    @field_validator("model_generated_sql", "executed_sql")
-    @classmethod
-    def normalize_optional_sql(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        normalized = value.strip()
-        return normalized or None
