@@ -38,6 +38,7 @@ uv run uvicorn src.internhunter.api.app:app --reload
 - `src/config/settings.yaml` is the default-value source for app, agent, crawler, llm, logging, and mlflow settings.
 - `.env` should be treated primarily as the home for secrets and deployment-specific overrides.
 - The current default `/agent/ask` provider path expects a reachable local Ollama server at the configured `agent.provider.base_url` with the configured model already available.
+- Agent tracing uses Langfuse's official LangChain `CallbackHandler` for runtime calls. The pre-agent guardrail is traced separately as one Langfuse observation because it runs outside LangChain. If Langfuse is unavailable, the API still returns a local `trace_id` and fails open.
 - `src/scripts/upgrade_db.py` is a lightweight table-verification helper.
 - The project now assumes the active database schema is current.
 - There is no `src/main.py` entrypoint in this repo. Use `src/run_pipeline.py` for pipeline work, `uvicorn src.internhunter.api.app:app --reload` for local API work, and `src/scripts/` for targeted smoke or maintenance flows.

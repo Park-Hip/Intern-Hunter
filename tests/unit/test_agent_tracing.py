@@ -5,61 +5,30 @@ import types
 
 from pydantic import SecretStr
 
-from src.agents.tracing import LangfuseAgentTracer, NullAgentTracer, build_agent_tracer
+from src.agents.tracing import (
+    build_langchain_tracing_config,
+    get_current_trace_id_or_fallback,
+    trace_guardrail_decision,
+)
 
 
-def test_null_tracer_returns_trace_id_without_side_effects() -> None:
-    """The null tracer should still mint a usable trace identifier."""
-    tracer = NullAgentTracer()
+def test_build_langchain_tracing_config_returns_callbacks_and_metadata(monkeypatch) -> None:
+    """The tracing helper should return LangChain callbacks plus safe Langfuse metadata."""
 
-    trace_id = tracer.start_trace("What can you do?")
-
-    assert isinstance(trace_id, str)
-    assert trace_id
-
-
-def test_null_tracer_finish_trace_is_a_no_op() -> None:
-    """Finishing a trace should not raise when tracing is unconfigured."""
-    tracer = NullAgentTracer()
-
-    trace_id = tracer.start_trace("What can you do?")
-
-    assert tracer.finish_trace(trace_id, "ok") is None
-
-
-def test_build_agent_tracer_falls_back_to_null_when_unconfigured(monkeypatch) -> None:
-    """The tracing factory should fail open when no backend config is present."""
-    monkeypatch.setattr(
-        "src.agents.tracing.settings",
-        type(
-            "_FakeSettings",
-            (),
-            {
-                "LANGFUSE_PUBLIC_KEY": None,
-                "LANGFUSE_SECRET_KEY": None,
-                "LANGFUSE_HOST": None,
-            },
-        )(),
-    )
-
-    tracer = build_agent_tracer()
-
-    assert isinstance(tracer, NullAgentTracer)
-
-
-def test_build_agent_tracer_returns_langfuse_when_configured(monkeypatch) -> None:
-    """The tracing factory should build the Langfuse-backed tracer from loaded settings."""
     class _FakeLangfuse:
         def __init__(self, **kwargs) -> None:
             self.kwargs = kwargs
 
-        def trace(self, **kwargs):
-            return types.SimpleNamespace(id="trace-1", update=lambda **_: None)
-
-        def flush(self) -> None:
-            return None
+    class _FakeCallbackHandler:
+        def __init__(self, public_key=None) -> None:
+            self.public_key = public_key
 
     monkeypatch.setitem(sys.modules, "langfuse", types.SimpleNamespace(Langfuse=_FakeLangfuse))
+    monkeypatch.setitem(
+        sys.modules,
+        "langfuse.langchain",
+        types.SimpleNamespace(CallbackHandler=_FakeCallbackHandler),
+    )
     monkeypatch.setattr(
         "src.agents.tracing.settings",
         type(
@@ -73,131 +42,135 @@ def test_build_agent_tracer_returns_langfuse_when_configured(monkeypatch) -> Non
         )(),
     )
 
-    tracer = build_agent_tracer()
+    config = build_langchain_tracing_config(user_id="user-1", session_id="session-1")
 
-    assert isinstance(tracer, LangfuseAgentTracer)
+    assert len(config["callbacks"]) == 1
+    assert isinstance(config["callbacks"][0], _FakeCallbackHandler)
+    assert config["callbacks"][0].public_key == "public-test"
+    assert config["metadata"] == {
+        "langfuse_user_id": "user-1",
+        "langfuse_session_id": "session-1",
+    }
 
 
-def test_build_agent_tracer_reads_langfuse_keys_from_loaded_settings(monkeypatch) -> None:
-    """The tracing factory should honor Langfuse values loaded from the app settings layer."""
-    class _FakeLangfuse:
-        def __init__(self, **kwargs) -> None:
-            self.kwargs = kwargs
-
-        def trace(self, **kwargs):
-            return types.SimpleNamespace(id="trace-2", update=lambda **_: None)
-
-        def flush(self) -> None:
-            return None
-
-    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
-    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
-    monkeypatch.delenv("LANGFUSE_HOST", raising=False)
-    monkeypatch.setitem(sys.modules, "langfuse", types.SimpleNamespace(Langfuse=_FakeLangfuse))
+def test_build_langchain_tracing_config_returns_empty_when_langfuse_is_unconfigured(monkeypatch) -> None:
+    """The tracing helper should fail open when Langfuse credentials are missing."""
     monkeypatch.setattr(
         "src.agents.tracing.settings",
         type(
             "_FakeSettings",
             (),
             {
-                "LANGFUSE_PUBLIC_KEY": SecretStr("public-from-settings"),
-                "LANGFUSE_SECRET_KEY": SecretStr("secret-from-settings"),
-                "LANGFUSE_HOST": "https://settings-host.example",
+                "LANGFUSE_PUBLIC_KEY": None,
+                "LANGFUSE_SECRET_KEY": None,
+                "LANGFUSE_HOST": None,
             },
         )(),
     )
 
-    tracer = build_agent_tracer()
+    assert build_langchain_tracing_config(user_id=None, session_id=None) == {}
 
-    assert isinstance(tracer, LangfuseAgentTracer)
-def test_langfuse_tracer_start_trace_uses_real_client_methods(monkeypatch) -> None:
-    """Starting a trace should call the Langfuse client and return the created trace id."""
 
-    class _FakeTraceClient:
-        def __init__(self, trace_id: str) -> None:
-            self.id = trace_id
-            self.update_calls: list[dict[str, object]] = []
+def test_trace_guardrail_decision_records_one_guardrail_observation(monkeypatch) -> None:
+    """The guardrail helper should emit one Langfuse observation when configured."""
 
-        def update(self, **kwargs) -> "_FakeTraceClient":
-            self.update_calls.append(kwargs)
-            return self
+    class _FakeObservation:
+        def __init__(self) -> None:
+            self.update_trace_calls: list[dict[str, object]] = []
+            self.end_calls: list[dict[str, object]] = []
 
-    class _FakeLangfuse:
-        instances: list["_FakeLangfuse"] = []
+        def update_trace(self, **kwargs) -> None:
+            self.update_trace_calls.append(kwargs)
+
+        def end(self, **kwargs) -> None:
+            self.end_calls.append(kwargs)
+
+    class _FakeContextManager:
+        def __init__(self, observation) -> None:
+            self.observation = observation
+
+        def __enter__(self):
+            return self.observation
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    class _FakeClient:
+        instances: list["_FakeClient"] = []
 
         def __init__(self, **kwargs) -> None:
             self.kwargs = kwargs
-            self.trace_calls: list[dict[str, object]] = []
+            self.calls: list[dict[str, object]] = []
+            self.observation = _FakeObservation()
             self.flush_calls = 0
-            self.trace_client = _FakeTraceClient("trace-real-1")
-            _FakeLangfuse.instances.append(self)
+            _FakeClient.instances.append(self)
 
-        def trace(self, **kwargs) -> _FakeTraceClient:
-            self.trace_calls.append(kwargs)
-            return self.trace_client
+        def start_as_current_observation(self, **kwargs):
+            self.calls.append(kwargs)
+            return _FakeContextManager(self.observation)
 
         def flush(self) -> None:
             self.flush_calls += 1
 
-    monkeypatch.setitem(sys.modules, "langfuse", types.SimpleNamespace(Langfuse=_FakeLangfuse))
+        def get_current_trace_id(self) -> str:
+            return "guardrail-trace-1"
 
-    tracer = LangfuseAgentTracer(
-        public_key="public-test",
-        secret_key="secret-test",
-        host="https://langfuse.example",
+    monkeypatch.setitem(sys.modules, "langfuse", types.SimpleNamespace(Langfuse=_FakeClient))
+    monkeypatch.setattr(
+        "src.agents.tracing.settings",
+        type(
+            "_FakeSettings",
+            (),
+            {
+                "LANGFUSE_PUBLIC_KEY": SecretStr("public-test"),
+                "LANGFUSE_SECRET_KEY": SecretStr("secret-test"),
+                "LANGFUSE_HOST": "https://langfuse.example",
+            },
+        )(),
     )
 
-    trace_id = tracer.start_trace("What can you do?")
-    client = _FakeLangfuse.instances[0]
+    trace_id = trace_guardrail_decision(
+        question="Drop the clean_jobs table.",
+        allowed=False,
+        refusal_category="destructive_request",
+        refusal_code="unsafe_sql",
+        session_id="session-1",
+        user_id="user-1",
+    )
 
-    assert trace_id == "trace-real-1"
-    assert client.kwargs["public_key"] == "public-test"
-    assert client.kwargs["secret_key"] == "secret-test"
-    assert client.kwargs["host"] == "https://langfuse.example"
-    assert client.trace_calls == [
+    client = _FakeClient.instances[0]
+    assert trace_id == "guardrail-trace-1"
+    assert client.calls == [
         {
-            "name": "agent.ask",
-            "input": {"question": "What can you do?"},
-            "metadata": {"component": "internhunter-agent-runtime"},
+            "name": "agent.guardrail",
+            "as_type": "guardrail",
+            "input": {"question": "Drop the clean_jobs table."},
+            "metadata": {
+                "allowed": False,
+                "category": "destructive_request",
+                "code": "unsafe_sql",
+            },
         }
     ]
-
-
-def test_langfuse_tracer_finish_trace_updates_and_flushes(monkeypatch) -> None:
-    """Finishing a trace should update the trace and flush best-effort."""
-
-    class _FakeTraceClient:
-        def __init__(self, trace_id: str) -> None:
-            self.id = trace_id
-            self.update_calls: list[dict[str, object]] = []
-
-        def update(self, **kwargs) -> "_FakeTraceClient":
-            self.update_calls.append(kwargs)
-            return self
-
-    class _FakeLangfuse:
-        instances: list["_FakeLangfuse"] = []
-
-        def __init__(self, **kwargs) -> None:
-            self.kwargs = kwargs
-            self.trace_client = _FakeTraceClient("trace-real-2")
-            self.flush_calls = 0
-            _FakeLangfuse.instances.append(self)
-
-        def trace(self, **kwargs) -> _FakeTraceClient:
-            return self.trace_client
-
-        def flush(self) -> None:
-            self.flush_calls += 1
-
-    monkeypatch.setitem(sys.modules, "langfuse", types.SimpleNamespace(Langfuse=_FakeLangfuse))
-
-    tracer = LangfuseAgentTracer(public_key="public-test", secret_key="secret-test")
-    trace_id = tracer.start_trace("What can you do?")
-
-    assert trace_id == "trace-real-2"
-    assert tracer.finish_trace(trace_id, "ok") is None
-
-    client = _FakeLangfuse.instances[0]
-    assert client.trace_client.update_calls == [{"output": {"status": "ok"}}]
+    assert client.observation.update_trace_calls == [{"session_id": "session-1", "user_id": "user-1"}]
+    assert client.observation.end_calls == [
+        {
+            "output": {
+                "allowed": False,
+                "category": "destructive_request",
+                "code": "unsafe_sql",
+            }
+        }
+    ]
     assert client.flush_calls == 1
+
+
+def test_get_current_trace_id_or_fallback_prefers_callback_handler_state() -> None:
+    """The runtime should prefer the callback handler trace id after invocation."""
+
+    class _FakeCallbackHandler:
+        last_trace_id = "runtime-trace-1"
+
+    trace_id = get_current_trace_id_or_fallback({"callbacks": [_FakeCallbackHandler()]})
+
+    assert trace_id == "runtime-trace-1"

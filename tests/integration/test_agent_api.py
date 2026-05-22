@@ -46,6 +46,25 @@ def test_agent_api_blocked_request_uses_tracing_seam(monkeypatch):
     assert tracer.finish_calls == [("blocked-trace-1", "refused")]
 
 
+def test_agent_api_blocked_request_uses_request_scoped_trace_id(monkeypatch):
+    monkeypatch.setattr(
+        agent_service,
+        "trace_guardrail_decision",
+        lambda **_: "service-trace-blocked-1",
+        raising=False,
+    )
+
+    response = client.post(
+        "/agent/ask",
+        json={"question": "Drop the clean_jobs table."},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "refused"
+    assert payload["metadata"]["trace_id"] == "service-trace-blocked-1"
+
+
 def test_agent_api_blocked_request_stops_before_allowed_placeholder(monkeypatch):
     def fail_if_called(*args, **kwargs):
         raise AssertionError("build_agent_runtime should not run for blocked requests")
@@ -135,19 +154,13 @@ def test_agent_api_preview_request_returns_preview_placeholder():
     assert payload["metadata"]["trace_id"]
 
 
-def test_agent_api_preview_request_uses_tracing_seam(monkeypatch):
-    class FakeTracer:
-        def __init__(self) -> None:
-            self.finish_calls: list[tuple[str, str]] = []
-
-        def start_trace(self, question: str) -> str:
-            return "preview-trace-1"
-
-        def finish_trace(self, trace_id: str, status: str) -> None:
-            self.finish_calls.append((trace_id, status))
-
-    tracer = FakeTracer()
-    monkeypatch.setattr(agent_service, "build_agent_tracer", lambda: tracer)
+def test_agent_api_preview_request_uses_request_scoped_trace_id(monkeypatch):
+    monkeypatch.setattr(
+        agent_service,
+        "trace_guardrail_decision",
+        lambda **_: "service-trace-preview-1",
+        raising=False,
+    )
 
     response = client.post(
         "/agent/ask",
@@ -156,8 +169,8 @@ def test_agent_api_preview_request_uses_tracing_seam(monkeypatch):
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["metadata"]["trace_id"] == "preview-trace-1"
-    assert tracer.finish_calls == [("preview-trace-1", "preview")]
+    assert payload["status"] == "ok"
+    assert payload["metadata"]["trace_id"] == "service-trace-preview-1"
 
 
 def test_agent_api_allowed_sql_like_request_returns_runtime_backed_answer(monkeypatch):

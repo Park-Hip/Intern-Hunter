@@ -3,7 +3,7 @@ from __future__ import annotations
 from src.agents.guardrail import screen_question
 from src.agents.runtime import build_agent_runtime
 from src.agents.state import AgentRuntimeInput, AgentRuntimeOutput
-from src.agents.tracing import build_agent_tracer
+from src.agents.tracing import trace_guardrail_decision
 from src.agents.types import RefusalArtifact
 from src.internhunter.api.schemas.agent import (
     AgentAskRefusedResponse,
@@ -88,34 +88,21 @@ def _get_agent_runtime():
     return _RUNTIME_CACHE
 
 
-def _build_allowed_runtime_response(request: AgentAskRequest) -> AgentAskOkResponse:
-    """Translate the runtime result into the existing typed API response."""
-    runtime_output = _invoke_allowed_runtime(request)
-    return AgentAskOkResponse(
-        question=request.question,
-        sql=AgentSQLPayload(),
-        answer=runtime_output.answer,
-        warnings=runtime_output.warnings,
-        metadata=_build_metadata(request, trace_id=runtime_output.trace_id),
-    )
-
-
-def _build_request_trace_id(question: str, status: str) -> str:
-    """Create a request trace id for non-runtime branches using the shared tracing seam."""
-    tracer = build_agent_tracer()
-    trace_id = tracer.start_trace(question)
-    tracer.finish_trace(trace_id, status)
-    return trace_id
-
-
 def handle_agent_ask(
     request: AgentAskRequest,
 ) -> AgentAskOkResponse | AgentAskPreviewResponse | AgentAskRefusedResponse:
     """Handle the typed `/agent/ask` workflow with guardrail-first branching."""
     guardrail = screen_question(request.question)
+    trace_id = trace_guardrail_decision(
+        question=request.question,
+        allowed=guardrail.allowed,
+        refusal_category=guardrail.refusal.category.value if guardrail.refusal else None,
+        refusal_code=guardrail.refusal.code.value if guardrail.refusal else None,
+        session_id=request.session_id,
+        user_id=request.user_id,
+    )
 
     if not guardrail.allowed:
-        trace_id = _build_request_trace_id(request.question, "refused")
         return _build_refused_response(
             request=request,
             refusal=guardrail.refusal,
@@ -124,7 +111,13 @@ def handle_agent_ask(
         )
 
     if request.preview_only:
-        trace_id = _build_request_trace_id(request.question, "preview")
         return _build_preview_response(request, trace_id=trace_id)
 
-    return _build_allowed_runtime_response(request)
+    runtime_output = _invoke_allowed_runtime(request)
+    return AgentAskOkResponse(
+        question=request.question,
+        sql=AgentSQLPayload(),
+        answer=runtime_output.answer,
+        warnings=runtime_output.warnings,
+        metadata=_build_metadata(request, trace_id=runtime_output.trace_id),
+    )

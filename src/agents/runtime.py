@@ -1,21 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
-
-from langchain.agents import create_agent
+from typing import TYPE_CHECKING, Any, Protocol
 
 from src.agents.memory import AgentMemoryMessage, AgentMemoryStore
-from src.agents.provider import AgentProvider
 from src.agents.state import AgentRuntimeInput, AgentRuntimeOutput
-from src.agents.tracing import AgentTracer, build_agent_tracer
+from src.agents.tracing import build_langchain_tracing_config, get_current_trace_id_or_fallback
 from src.internhunter.config.settings import settings
+
+if TYPE_CHECKING:
+    from src.agents.provider import AgentProvider
 
 
 class AgentGraph(Protocol):
     """Protocol for the compiled LangChain agent graph."""
 
-    def invoke(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """Invoke the compiled graph with a LangChain agent payload."""
+    def invoke(
+        self,
+        payload: dict[str, Any],
+        config: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Invoke the compiled graph with a LangChain agent payload and config."""
 
 
 class AgentRuntime:
@@ -25,30 +30,29 @@ class AgentRuntime:
         self,
         agent: AgentGraph,
         memory: AgentMemoryStore | None = None,
-        tracer: AgentTracer | None = None,
     ) -> None:
-        """Store the compiled agent graph and optional runtime seams."""
+        """Store the compiled agent graph and optional memory seam."""
         self.agent = agent
         self.memory = memory or AgentMemoryStore()
-        self.tracer = tracer or build_agent_tracer()
 
     def invoke(self, payload: AgentRuntimeInput) -> AgentRuntimeOutput:
         """Invoke the graph and translate its output into a typed runtime result."""
-        trace_id = self.tracer.start_trace(payload.question)
         messages = self._build_messages(payload)
         invocation_payload: dict[str, Any] = {"messages": messages}
-        invocation_config = self.memory.build_invocation_config(payload.session_id)
-        if invocation_config:
-            invocation_payload["config"] = invocation_config
-
-        response = self.agent.invoke(invocation_payload)
+        invocation_config = _merge_agent_configs(
+            self.memory.build_invocation_config(payload.session_id),
+            build_langchain_tracing_config(
+                user_id=payload.user_id,
+                session_id=payload.session_id,
+            ),
+        )
+        response = self.agent.invoke(invocation_payload, config=invocation_config or None)
         answer = _extract_last_assistant_message(response)
         self._record_memory(payload, answer)
-        self.tracer.finish_trace(trace_id, "ok")
         return AgentRuntimeOutput(
             answer=answer,
             warnings=[],
-            trace_id=trace_id,
+            trace_id=get_current_trace_id_or_fallback(invocation_config),
         )
 
     def _build_messages(self, payload: AgentRuntimeInput) -> list[AgentMemoryMessage]:
@@ -110,24 +114,50 @@ def _message_content(message: Any) -> str:
     return str(content).strip()
 
 
+def _merge_agent_configs(*configs: dict[str, Any]) -> dict[str, Any]:
+    """Merge LangGraph memory config and Langfuse callback config for one invocation."""
+    merged: dict[str, Any] = {}
+    for config in configs:
+        if not config:
+            continue
+        for key, value in config.items():
+            if key == "callbacks":
+                callbacks = merged.setdefault("callbacks", [])
+                callbacks.extend(value)
+                continue
+            if key == "metadata":
+                metadata = merged.setdefault("metadata", {})
+                metadata.update(value)
+                continue
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                existing = merged[key]
+                existing.update(value)
+                continue
+            merged[key] = value
+    return merged
+
+
 def build_agent_runtime(
     provider: AgentProvider | None = None,
-    agent_factory: Any = create_agent,
+    agent_factory: Any | None = None,
     memory: AgentMemoryStore | None = None,
-    tracer: AgentTracer | None = None,
 ) -> AgentRuntime:
     """Build the Milestone 1 runtime using the real LangChain entrypoint."""
+    from langchain.agents import create_agent
+    from src.agents.provider import AgentProvider
+
     model_provider = provider or AgentProvider()
     memory_limit = getattr(getattr(model_provider, "settings", None), "agent", None)
     configured_limit = getattr(memory_limit, "memory_limit", 10)
     runtime_memory = memory or AgentMemoryStore(limit=configured_limit)
     model = model_provider.build_model()
-    agent = agent_factory(
+    builder = agent_factory or create_agent
+    agent = builder(
         model=model,
         tools=[],
         system_prompt=_load_agent_system_prompt(),
     )
-    return AgentRuntime(agent=agent, memory=runtime_memory, tracer=tracer)
+    return AgentRuntime(agent=agent, memory=runtime_memory)
 
 
 def _load_agent_system_prompt() -> str:

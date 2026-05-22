@@ -15,6 +15,7 @@ __pycache__/
 *.pyo
 *.pyd
 .codex_skill_build/
+.worktrees/
 
 mlflow.db
 *.sqlite
