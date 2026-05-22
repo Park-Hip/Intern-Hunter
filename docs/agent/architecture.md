@@ -14,7 +14,7 @@ The current repository includes a guarded Milestone 1 runtime slice:
 
 - `src/internhunter/api/routes/agent_routes.py` wires `POST /agent/ask`
 - `src/internhunter/api/schemas/agent.py` defines the typed HTTP contract baseline
-- `src/agents/guardrail.py` performs deterministic pre-agent screening
+- `src/agents/guardrail.py` currently performs only deterministic profanity screening via `src/agents/bad_words.txt`
 - `src/agents/service.py` currently returns three live outcomes:
   - refusal for blocked prompts
   - preview stub output when `preview_only=true`

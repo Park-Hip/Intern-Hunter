@@ -43,7 +43,7 @@ Search and match result rows are repository-backed dictionaries, not dedicated H
 
 The current `/agent/ask` implementation is intentionally narrow:
 
-- blocked unsafe or out-of-scope requests return a typed `status="refused"` envelope before runtime execution
+- only profanity that matches `src/agents/bad_words.txt` returns a typed `status="refused"` envelope before runtime execution
 - allowed prompts now pass through a real Milestone 1 runtime path with no tools enabled; successful live responses depend on the configured local runtime provider being reachable
 - `preview_only=true` still returns a preview-shaped `status="ok"` envelope with stub `validated_sql`
 - short session memory is intentionally retained and wired through caller-provided `session_id`; it can be reused across API calls that hit the same runtime instance
@@ -77,6 +77,6 @@ These appear in `audit_jobs.error_type`:
 ## Notes
 
 - The API surface now centers on search and resume matching.
-- `POST /agent/ask` is now part of the live API surface, with deterministic pre-agent screening, a runtime-backed allowed path, and a stub preview branch, but it is still not a SQL-capable or tool-using agent.
+- `POST /agent/ask` is now part of the live API surface, with a narrow profanity-only pre-agent screen, a runtime-backed allowed path, and a stub preview branch, but it is still not a SQL-capable or tool-using agent.
 - Keep this page aligned with `src/internhunter/api/routes/demo_routes.py`, `src/internhunter/api/routes/agent_routes.py`, and `src/internhunter/api/schemas/agent.py`.
 - The live API is still lightly typed at the HTTP boundary outside the `/agent/ask` scaffold.

@@ -79,7 +79,9 @@ def trace_guardrail_decision(
         ) as observation:
             if hasattr(observation, "update_trace"):
                 observation.update_trace(session_id=session_id, user_id=user_id)
-            observation.end(output=output)
+            if hasattr(observation, "update"):
+                observation.update(output=output)
+            observation.end()
         client.flush()
         return client.get_current_trace_id() or build_local_trace_id()
     except Exception:

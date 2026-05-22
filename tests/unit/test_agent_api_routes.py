@@ -102,7 +102,17 @@ def test_agent_ask_endpoint_refuses_profanity():
     assert payload["sql"]["executed_sql"] is None
 
 
-def test_agent_ask_endpoint_refuses_unrelated_topic():
+def test_agent_ask_endpoint_allows_unrelated_topic_when_not_profane(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                answer="Runtime saw the unrelated prompt because the guardrail only blocks profanity.",
+                warnings=["Guardrail only screens bad_words.txt matches."],
+                trace_id="runtime-trace-route-6",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Who won the last World Cup?"},
@@ -110,13 +120,24 @@ def test_agent_ask_endpoint_refuses_unrelated_topic():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["status"] == "refused"
-    assert payload["error"]["category"] == "out_of_scope"
+    assert payload["status"] == "ok"
+    assert payload["answer"] == "Runtime saw the unrelated prompt because the guardrail only blocks profanity."
+    assert payload["warnings"] == ["Guardrail only screens bad_words.txt matches."]
     assert payload["metadata"]["execution_skipped"] is True
     assert payload["sql"]["executed_sql"] is None
 
 
-def test_agent_ask_endpoint_refuses_destructive_sql_prompt():
+def test_agent_ask_endpoint_allows_destructive_sql_prompt_for_runtime_handling(monkeypatch):
+    class FakeRuntime:
+        def invoke(self, payload):
+            return agent_service.AgentRuntimeOutput(
+                answer="Runtime saw the destructive request because the guardrail only blocks profanity.",
+                warnings=["SQL safety must happen later in the agent flow."],
+                trace_id="runtime-trace-route-7",
+            )
+
+    monkeypatch.setattr(agent_service, "build_agent_runtime", lambda: FakeRuntime())
+
     response = client.post(
         "/agent/ask",
         json={"question": "Delete all jobs from the database."},
@@ -124,9 +145,9 @@ def test_agent_ask_endpoint_refuses_destructive_sql_prompt():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["status"] == "refused"
-    assert payload["error"]["code"] == "unsafe_sql"
-    assert payload["error"]["category"] == "destructive_request"
+    assert payload["status"] == "ok"
+    assert payload["answer"] == "Runtime saw the destructive request because the guardrail only blocks profanity."
+    assert payload["warnings"] == ["SQL safety must happen later in the agent flow."]
     assert payload["metadata"]["execution_skipped"] is True
     assert payload["sql"]["executed_sql"] is None
 

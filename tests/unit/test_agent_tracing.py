@@ -77,13 +77,17 @@ def test_trace_guardrail_decision_records_one_guardrail_observation(monkeypatch)
     class _FakeObservation:
         def __init__(self) -> None:
             self.update_trace_calls: list[dict[str, object]] = []
-            self.end_calls: list[dict[str, object]] = []
+            self.update_calls: list[dict[str, object]] = []
+            self.end_calls = 0
 
         def update_trace(self, **kwargs) -> None:
             self.update_trace_calls.append(kwargs)
 
-        def end(self, **kwargs) -> None:
-            self.end_calls.append(kwargs)
+        def update(self, **kwargs) -> None:
+            self.update_calls.append(kwargs)
+
+        def end(self) -> None:
+            self.end_calls += 1
 
     class _FakeContextManager:
         def __init__(self, observation) -> None:
@@ -153,7 +157,7 @@ def test_trace_guardrail_decision_records_one_guardrail_observation(monkeypatch)
         }
     ]
     assert client.observation.update_trace_calls == [{"session_id": "session-1", "user_id": "user-1"}]
-    assert client.observation.end_calls == [
+    assert client.observation.update_calls == [
         {
             "output": {
                 "allowed": False,
@@ -162,6 +166,7 @@ def test_trace_guardrail_decision_records_one_guardrail_observation(monkeypatch)
             }
         }
     ]
+    assert client.observation.end_calls == 1
     assert client.flush_calls == 1
 
 

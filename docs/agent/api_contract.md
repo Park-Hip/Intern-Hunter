@@ -5,7 +5,7 @@ This document defines the planned HTTP contract for the database-agent layer.
 ## Status
 
 - `POST /agent/ask`, the request/response models, and a thin orchestration seam are implemented as a scaffold.
-- The current live behavior is intentionally narrow: deterministic refusals for blocked prompts, a preview stub when `preview_only=true`, and a runtime-backed non-SQL `ok` response for other allowed requests.
+- The current live behavior is intentionally narrow: deterministic refusals only for profanity that matches `src/agents/bad_words.txt`, a preview stub when `preview_only=true`, and a runtime-backed non-SQL `ok` response for all other requests.
 - Real SQL generation, validation, execution, and charting are still future work behind the existing endpoint.
 - Milestone 1 runtime work currently adds only a runtime-backed non-SQL response path with intentionally retained short session memory, YAML-backed runtime prompts, and a small tracing seam.
 - Existing search and resume-matching endpoints remain unchanged in this phase.
